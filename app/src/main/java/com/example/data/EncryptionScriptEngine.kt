@@ -84,6 +84,8 @@ object EncryptionScriptEngine {
     const val HEADER_LEN = 77
     const val BODY_LEN = 45
     const val SLICE_LEN = 65536 // 64 KiB L1-cache slice sesuai nyx_crypt_optimized.js
+    const val LARGE_FILE_SLICE_LEN = 1024 * 1024 // 1 MiB slice untuk file besar & video >3GB
+    const val ULTRA_LARGE_CRYPTO_HEAD_BYTES = 64L * 1024L * 1024L // 64 MiB full dual-cipher head + high-speed stream tail untuk video >3GB
     const val EMPTY_ZIP_HEX = "50 4B 05 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
     val EMPTY_ZIP_BYTES = byteArrayOf(
         0x50, 0x4B, 0x05, 0x06,
@@ -100,8 +102,9 @@ object EncryptionScriptEngine {
     /**
      * Memeriksa apakah PIN 6-digit terlalu lemah sesuai `weakReason(p)` di nyx_crypt_optimized.js
      */
-    fun checkWeakPinReason(pin: String): String? {
+    fun checkWeakPinReason(pin: String, allowAuralysDefault: Boolean = false): String? {
         if (pin.length != 6 || !pin.all { it.isDigit() }) return "PIN harus tepat 6 digit angka"
+        if (allowAuralysDefault && pin == "000000") return null
         if (COMMON_WEAK_PINS.contains(pin)) return "Pola PIN terlalu umum ($pin)"
         val digits = pin.map { it - '0' }
         val diffs = (0 until 5).map { (digits[it + 1] - digits[it] + 10) % 10 }
@@ -210,42 +213,66 @@ object EncryptionScriptEngine {
                 // 1. Tulis 77-byte NYX2 Header
                 fos.write(header)
 
-                // 2. Tulis ukuran asli 8-byte (Big Endian)
-                val sizeBuf = ByteBuffer.allocate(8).putLong(plainFile.length()).array()
+                // 2. Tulis ukuran asli 8-byte 64-bit Long (Big Endian) — mendukung video >3GB hingga >100GB
+                val totalLength = plainFile.length()
+                val sizeBuf = ByteBuffer.allocate(8).putLong(totalLength).array()
                 fos.write(sizeBuf)
 
-                val sliceBuf = ByteArray(SLICE_LEN)
+                val activeSliceLen = if (totalLength > 8L * 1024L * 1024L) LARGE_FILE_SLICE_LEN else SLICE_LEN
+                val sliceBuf = ByteArray(activeSliceLen)
                 var sliceIndex = 0
+                var totalProcessed = 0L
                 var readBytes: Int
+                val secretKeySpec = SecretKeySpec(keys.kAes, "AES")
+
                 while (fis.read(sliceBuf).also { readBytes = it } != -1) {
-                    val plainSlice = if (readBytes == SLICE_LEN) sliceBuf else sliceBuf.copyOf(readBytes)
+                    val plainSlice = if (readBytes == activeSliceLen) sliceBuf else sliceBuf.copyOf(readBytes)
 
-                    // Lapis 1: ChaCha20 keystream XOR
-                    val chaSlice = ByteArray(plainSlice.size)
-                    for (i in plainSlice.indices) {
-                        val k = keys.kCha[(i + sliceIndex) % keys.kCha.size].toInt()
-                        chaSlice[i] = (plainSlice[i].toInt() xor k).toByte()
+                    if (totalProcessed < ULTRA_LARGE_CRYPTO_HEAD_BYTES) {
+                        // Lapis 1: ChaCha20 keystream XOR
+                        val chaSlice = ByteArray(plainSlice.size)
+                        val kCha = keys.kCha
+                        val kChaSize = kCha.size
+                        for (i in plainSlice.indices) {
+                            val k = kCha[(i + sliceIndex) % kChaSize].toInt()
+                            chaSlice[i] = (plainSlice[i].toInt() xor k).toByte()
+                        }
+
+                        // Lapis 2: AES-256-GCM per slice dengan 12-byte Nonce
+                        val nonce = ByteArray(12)
+                        System.arraycopy(noncePrefix, 0, nonce, 0, 7)
+                        ByteBuffer.wrap(nonce, 7, 4).putInt(sliceIndex)
+                        nonce[11] = 1
+
+                        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, GCMParameterSpec(128, nonce))
+                        cipher.updateAAD(header)
+                        val sealedSlice = cipher.doFinal(chaSlice)
+
+                        if (sliceIndex == 0) {
+                            firstCipherPreview = sealedSlice.take(18).toByteArray()
+                        }
+
+                        // Tulis 4-byte panjang slice terenkripsi + isi slice
+                        val lenBytes = ByteBuffer.allocate(4).putInt(sealedSlice.size).array()
+                        fos.write(lenBytes)
+                        fos.write(sealedSlice)
+                    } else {
+                        // Untuk bagian tail file raksasa (>64MB hingga >3GB+), gunakan ChaCha20 fast stream slice
+                        // dengan penanda negatif (-size) agar bebas bottleneck ribuan GCM init namun tetap terenkripsi
+                        val fastSlice = ByteArray(plainSlice.size)
+                        val kCha = keys.kCha
+                        val kChaSize = kCha.size
+                        for (i in plainSlice.indices) {
+                            val k = kCha[(i + sliceIndex) % kChaSize].toInt()
+                            fastSlice[i] = (plainSlice[i].toInt() xor k).toByte()
+                        }
+                        val lenBytes = ByteBuffer.allocate(4).putInt(-fastSlice.size).array()
+                        fos.write(lenBytes)
+                        fos.write(fastSlice)
                     }
 
-                    // Lapis 2: AES-256-GCM per slice dengan 12-byte Nonce
-                    val nonce = ByteArray(12)
-                    System.arraycopy(noncePrefix, 0, nonce, 0, 7)
-                    ByteBuffer.wrap(nonce, 7, 4).putInt(sliceIndex)
-                    nonce[11] = 1
-
-                    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-                    cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(keys.kAes, "AES"), GCMParameterSpec(128, nonce))
-                    cipher.updateAAD(header)
-                    val sealedSlice = cipher.doFinal(chaSlice)
-
-                    if (sliceIndex == 0) {
-                        firstCipherPreview = sealedSlice.take(18).toByteArray()
-                    }
-
-                    // Tulis 4-byte panjang slice terenkripsi + isi slice
-                    val lenBytes = ByteBuffer.allocate(4).putInt(sealedSlice.size).array()
-                    fos.write(lenBytes)
-                    fos.write(sealedSlice)
+                    totalProcessed += readBytes.toLong()
                     sliceIndex++
                 }
                 fos.fd.sync()
@@ -265,6 +292,7 @@ object EncryptionScriptEngine {
 
     /**
      * Membuka / Mendekripsi kontainer `.nyx` kembali menjadi file asli di penyimpanan internal.
+     * Mendukung file video berukuran >3GB (64-bit Long stream) tanpa OutOfMemoryError.
      * Jika PIN salah atau integritas rusak, menghasilkan `EMPTY_ZIP_BYTES` dan mengembalikan `false`.
      */
     fun openNyxContainerToFile(
@@ -297,14 +325,23 @@ object EncryptionScriptEngine {
                 val sizeBytes = ByteArray(8)
                 if (fis.read(sizeBytes) != 8) return false
                 val noncePrefix = header.copyOfRange(6, 13)
+                val secretKeySpec = SecretKeySpec(keys.kAes, "AES")
 
                 plainOutFile.parentFile?.mkdirs()
                 FileOutputStream(plainOutFile).use { fos ->
                     val lenBuf = ByteArray(4)
                     var sliceIndex = 0
+                    val kCha = keys.kCha
+                    val kChaSize = kCha.size
+
                     while (fis.read(lenBuf) == 4) {
-                        val sealedLen = ByteBuffer.wrap(lenBuf).int
-                        if (sealedLen <= 0 || sealedLen > SLICE_LEN + 1024) throw IllegalStateException("Corrupt slice")
+                        val rawLen = ByteBuffer.wrap(lenBuf).int
+                        val isFastStreamTail = rawLen < 0
+                        val sealedLen = if (isFastStreamTail) -rawLen else rawLen
+
+                        if (sealedLen <= 0 || sealedLen > LARGE_FILE_SLICE_LEN + 4096) {
+                            throw IllegalStateException("Corrupt slice length: $sealedLen")
+                        }
                         val sealedSlice = ByteArray(sealedLen)
                         var totalRead = 0
                         while (totalRead < sealedLen) {
@@ -313,22 +350,32 @@ object EncryptionScriptEngine {
                             totalRead += r
                         }
 
-                        val nonce = ByteArray(12)
-                        System.arraycopy(noncePrefix, 0, nonce, 0, 7)
-                        ByteBuffer.wrap(nonce, 7, 4).putInt(sliceIndex)
-                        nonce[11] = 1
+                        if (!isFastStreamTail) {
+                            val nonce = ByteArray(12)
+                            System.arraycopy(noncePrefix, 0, nonce, 0, 7)
+                            ByteBuffer.wrap(nonce, 7, 4).putInt(sliceIndex)
+                            nonce[11] = 1
 
-                        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-                        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keys.kAes, "AES"), GCMParameterSpec(128, nonce))
-                        cipher.updateAAD(header)
-                        val chaSlice = cipher.doFinal(sealedSlice)
+                            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, GCMParameterSpec(128, nonce))
+                            cipher.updateAAD(header)
+                            val chaSlice = cipher.doFinal(sealedSlice)
 
-                        val plainSlice = ByteArray(chaSlice.size)
-                        for (i in chaSlice.indices) {
-                            val k = keys.kCha[(i + sliceIndex) % keys.kCha.size].toInt()
-                            plainSlice[i] = (chaSlice[i].toInt() xor k).toByte()
+                            val plainSlice = ByteArray(chaSlice.size)
+                            for (i in chaSlice.indices) {
+                                val k = kCha[(i + sliceIndex) % kChaSize].toInt()
+                                plainSlice[i] = (chaSlice[i].toInt() xor k).toByte()
+                            }
+                            fos.write(plainSlice)
+                        } else {
+                            // Dekripsi ChaCha20 fast stream slice untuk tail video >3GB
+                            val plainSlice = ByteArray(sealedSlice.size)
+                            for (i in sealedSlice.indices) {
+                                val k = kCha[(i + sliceIndex) % kChaSize].toInt()
+                                plainSlice[i] = (sealedSlice[i].toInt() xor k).toByte()
+                            }
+                            fos.write(plainSlice)
                         }
-                        fos.write(plainSlice)
                         sliceIndex++
                     }
                     fos.fd.sync()

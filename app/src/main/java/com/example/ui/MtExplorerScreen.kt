@@ -86,6 +86,30 @@ import com.example.ui.theme.JetBrainsMonoFontFamily
 import com.example.ui.theme.NebulaViolet
 import com.example.ui.theme.SolarGold
 import com.example.ui.theme.StarlightCyan
+import com.example.ui.theme.DuoBeeYellow
+import com.example.ui.theme.DuoBeeYellowLip
+import com.example.ui.theme.DuoBeeYellowSoft
+import com.example.ui.theme.DuoBeetlePurple
+import com.example.ui.theme.DuoBeetlePurpleLip
+import com.example.ui.theme.DuoBeetlePurpleSoft
+import com.example.ui.theme.DuoCardinalRed
+import com.example.ui.theme.DuoCardinalRedLip
+import com.example.ui.theme.DuoCardinalRedSoft
+import com.example.ui.theme.DuoFeatherGreen
+import com.example.ui.theme.DuoFeatherGreenLip
+import com.example.ui.theme.DuoFeatherGreenSoft
+import com.example.ui.theme.DuoFoxOrange
+import com.example.ui.theme.DuoFoxOrangeLip
+import com.example.ui.theme.DuoFoxOrangeSoft
+import com.example.ui.theme.DuoHareLip
+import com.example.ui.theme.DuoMacawBlue
+import com.example.ui.theme.DuoMacawBlueLip
+import com.example.ui.theme.DuoMacawBlueSoft
+import com.example.ui.theme.DuoPureWhite
+import com.example.ui.theme.DuoSwanBorder
+import com.example.ui.theme.VaultObsidian
+import com.example.ui.theme.duolingoButton
+import com.example.ui.theme.duolingoCard
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -141,13 +165,25 @@ fun MtExplorerScreen(
             .background(CosmicVoid)
             .testTag("mt_explorer_screen")
     ) {
-        // 1. Top Cosmic Scope & Engine Bar
-        Surface(
-            color = CosmicObsidian,
-            modifier = Modifier.fillMaxWidth(),
-            border = androidx.compose.foundation.BorderStroke(1.dp, CosmicBorderHairline)
+        // 1. Top 3D Duolingo Scope & Telemetry Header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .duolingoCard(
+                    backgroundColor = DuoBeetlePurpleSoft,
+                    borderColor = DuoBeetlePurple,
+                    lipColor = DuoBeetlePurpleLip,
+                    cornerRadius = 22.dp,
+                    borderWidth = 2.dp,
+                    lipHeight = 4.dp
+                )
+                .padding(bottom = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -157,250 +193,339 @@ fun MtExplorerScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = NebulaViolet
+                        Box(
+                            modifier = Modifier
+                                .duolingoButton(
+                                    faceColor = DuoBeetlePurple,
+                                    lipColor = DuoBeetlePurpleLip,
+                                    cornerRadius = 10.dp,
+                                    lipHeight = 3.dp
+                                )
+                                .padding(bottom = 3.dp)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = "MT DUAL-PANE",
+                                text = "MT DUAL-PANE 3D",
                                 style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = CosmicTextPure,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
                             )
                         }
                         Text(
                             text = "Binary & Archive Suite",
                             style = MaterialTheme.typography.titleMedium,
                             color = CosmicTextPure,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
 
-                    // Ambient Mascot Inspector Badge
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         CosmicDragonAvatar(
                             mood = MascotMood.MT_INSPECTING,
-                            size = 36.dp
+                            size = 34.dp
                         )
-                        IconButton(
-                            onClick = { refreshPanes() },
-                            modifier = Modifier.size(32.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .duolingoButton(
+                                    faceColor = DuoMacawBlue,
+                                    lipColor = DuoMacawBlueLip,
+                                    cornerRadius = 11.dp,
+                                    lipHeight = 3.dp
+                                )
+                                .instantTouchPress { refreshPanes() }
+                                .padding(bottom = 3.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Segarkan", tint = StarlightCyan)
+                            Icon(Icons.Default.Refresh, contentDescription = "Segarkan", tint = Color.White, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Live Telemetry Ticker inside MT Explorer
+                DuolingoLiveTelemetryTicker(
+                    screenTitle = "TELEMETRI DUAL-PANE & INSPEKTOR BINER",
+                    modeBadge = currentScope.displayName,
+                    metrics = listOf(
+                        TelemetryMetricPill(
+                            label = "PANEL KIRI",
+                            value = "${paneAFiles.size} ITEM",
+                            accentColor = DuoMacawBlue,
+                            lipColor = DuoMacawBlueLip,
+                            softColor = DuoMacawBlueSoft
+                        ),
+                        TelemetryMetricPill(
+                            label = "PANEL BRANKAS",
+                            value = "${paneBFiles.size} ITEM",
+                            accentColor = DuoFeatherGreen,
+                            lipColor = DuoFeatherGreenLip,
+                            softColor = DuoFeatherGreenSoft
+                        ),
+                        TelemetryMetricPill(
+                            label = "FOKUS",
+                            value = if (activePaneIndex == 0) "PANEL 1" else "PANEL 2",
+                            accentColor = DuoFoxOrange,
+                            lipColor = DuoFoxOrangeLip,
+                            softColor = DuoFoxOrangeSoft
+                        )
+                    ),
+                    accentColor = DuoMacawBlue,
+                    lipColor = DuoMacawBlueLip,
+                    softBgColor = DuoMacawBlueSoft
+                )
 
-                // Scope Switcher Chips
+                // Scope Switcher Chips (3D Duolingo Pastel Chips)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    MtExplorerScope.entries.forEach { scope ->
+                    MtExplorerScope.entries.forEachIndexed { idx, scope ->
                         val isSelected = currentScope == scope
-                        FilterChip(
+                        val (accent, lip, soft) = when (idx % 4) {
+                            0 -> Triple(DuoMacawBlue, DuoMacawBlueLip, DuoMacawBlueSoft)
+                            1 -> Triple(DuoFeatherGreen, DuoFeatherGreenLip, DuoFeatherGreenSoft)
+                            2 -> Triple(DuoBeetlePurple, DuoBeetlePurpleLip, DuoBeetlePurpleSoft)
+                            else -> Triple(DuoFoxOrange, DuoFoxOrangeLip, DuoFoxOrangeSoft)
+                        }
+                        Duolingo3DNavChip(
+                            label = scope.displayName,
                             selected = isSelected,
                             onClick = {
                                 currentScope = scope
                                 paneAPath = MtExplorerEngine.getDefaultDirectoryForScope(context, scope, vaultStorageDir)
                                 selectedItemA = null
                             },
-                            label = { Text(scope.displayName) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = if (scope == MtExplorerScope.DEVICE_ALL) StarlightCyan else NebulaViolet,
-                                selectedLabelColor = CosmicVoid,
-                                containerColor = CosmicSurface,
-                                labelColor = CosmicTextPure
-                            )
+                            accentColor = accent,
+                            lipColor = lip,
+                            softPastelColor = soft
                         )
                     }
                 }
             }
         }
 
-        // 2. Action Toolbar for Selected File
-        Surface(
-            color = CosmicSurface,
-            modifier = Modifier.fillMaxWidth(),
-            border = androidx.compose.foundation.BorderStroke(1.dp, CosmicBorderHairline)
+        // 2. 3D Tactile Action Toolbar for Selected File
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 2.dp)
+                .duolingoCard(
+                    backgroundColor = DuoPureWhite,
+                    borderColor = DuoSwanBorder,
+                    lipColor = DuoHareLip,
+                    cornerRadius = 18.dp,
+                    borderWidth = 2.dp,
+                    lipHeight = 4.dp
+                )
+                .padding(bottom = 4.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val canEncrypt = activeSelectedFile != null && !activeSelectedFile.isDirectory && !activeSelectedFile.isEncryptedNyx
+                val hasSelection = activeSelectedFile != null
+                val canInspectArchive = activeSelectedFile != null && (activeSelectedFile.isApk || activeSelectedFile.isZipArchive)
+                val canViewFile = activeSelectedFile != null && !activeSelectedFile.isDirectory
+
                 // 1-Tap Encrypt to Vault Bridge
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            if (!item.isDirectory) {
-                                onEncryptFileToVault(item.file)
-                                onStatusMessage("Menyegel ${item.name} ke Brankas $activeVaultId...")
-                                refreshPanes()
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (canEncrypt) DuoFeatherGreen else DuoSwanBorder,
+                            lipColor = if (canEncrypt) DuoFeatherGreenLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = canEncrypt) {
+                            activeSelectedFile?.let { item ->
+                                if (!item.isDirectory) {
+                                    onEncryptFileToVault(item.file)
+                                    onStatusMessage("Menyegel ${item.name} ke Brankas $activeVaultId...")
+                                    refreshPanes()
+                                }
                             }
                         }
-                    },
-                    enabled = activeSelectedFile != null && !activeSelectedFile.isDirectory && !activeSelectedFile.isEncryptedNyx,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = StarlightCyan,
-                        contentColor = CosmicVoid
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.testTag("mt_encrypt_to_vault_button")
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp)
+                        .testTag("mt_encrypt_to_vault_button"),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Kunci ke Vault", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Kunci ke Vault", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
 
                 // Copy to other pane
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            val ok = MtExplorerEngine.copyFileOrDirectory(item.file, targetDirectory)
-                            onStatusMessage(if (ok) "Berhasil menyalin ${item.name}" else "Gagal menyalin berkas")
-                            refreshPanes()
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (hasSelection) DuoMacawBlue else DuoSwanBorder,
+                            lipColor = if (hasSelection) DuoMacawBlueLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = hasSelection) {
+                            activeSelectedFile?.let { item ->
+                                val ok = MtExplorerEngine.copyFileOrDirectory(item.file, targetDirectory)
+                                onStatusMessage(if (ok) "Berhasil menyalin ${item.name}" else "Gagal menyalin berkas")
+                                refreshPanes()
+                            }
                         }
-                    },
-                    enabled = activeSelectedFile != null,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CosmicCardElevated,
-                        contentColor = CosmicTextPure
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Salin", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Salin", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
 
                 // Move to other pane
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            val ok = MtExplorerEngine.moveFileOrDirectory(item.file, targetDirectory)
-                            onStatusMessage(if (ok) "Berhasil memindahkan ${item.name}" else "Gagal memindahkan berkas")
-                            refreshPanes()
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (hasSelection) DuoFoxOrange else DuoSwanBorder,
+                            lipColor = if (hasSelection) DuoFoxOrangeLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = hasSelection) {
+                            activeSelectedFile?.let { item ->
+                                val ok = MtExplorerEngine.moveFileOrDirectory(item.file, targetDirectory)
+                                onStatusMessage(if (ok) "Berhasil memindahkan ${item.name}" else "Gagal memindahkan berkas")
+                                refreshPanes()
+                            }
                         }
-                    },
-                    enabled = activeSelectedFile != null,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CosmicCardElevated,
-                        contentColor = CosmicTextPure
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.DriveFileMove, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Pindah", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.DriveFileMove, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Pindah", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
 
                 // Inspect APK / ZIP
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            if (item.isApk) {
-                                val meta = MtExplorerEngine.inspectApkPackage(item.file)
-                                inspectingApkSummary = Pair(item, meta)
-                            } else if (item.isZipArchive) {
-                                val entries = MtExplorerEngine.inspectArchiveEntries(item.file)
-                                inspectingArchiveEntries = Pair(item, entries)
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (canInspectArchive) DuoBeetlePurple else DuoSwanBorder,
+                            lipColor = if (canInspectArchive) DuoBeetlePurpleLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = canInspectArchive) {
+                            activeSelectedFile?.let { item ->
+                                if (item.isApk) {
+                                    val meta = MtExplorerEngine.inspectApkPackage(item.file)
+                                    inspectingApkSummary = Pair(item, meta)
+                                } else if (item.isZipArchive) {
+                                    val entries = MtExplorerEngine.inspectArchiveEntries(item.file)
+                                    inspectingArchiveEntries = Pair(item, entries)
+                                }
                             }
                         }
-                    },
-                    enabled = activeSelectedFile != null && (activeSelectedFile.isApk || activeSelectedFile.isZipArchive),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NebulaViolet,
-                        contentColor = CosmicTextPure
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Inspeksi APK/ZIP", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.Archive, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Inspeksi APK/ZIP", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
 
                 // Hex Viewer
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            if (!item.isDirectory) {
-                                val hex = MtExplorerEngine.readHexDump(item.file)
-                                viewingHexContent = Pair(item, hex)
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (canViewFile) DuoBeeYellow else DuoSwanBorder,
+                            lipColor = if (canViewFile) DuoBeeYellowLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = canViewFile) {
+                            activeSelectedFile?.let { item ->
+                                if (!item.isDirectory) {
+                                    val hex = MtExplorerEngine.readHexDump(item.file)
+                                    viewingHexContent = Pair(item, hex)
+                                }
                             }
                         }
-                    },
-                    enabled = activeSelectedFile != null && !activeSelectedFile.isDirectory,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CosmicCardElevated,
-                        contentColor = CosmicTextPure
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Hex View", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.Code, contentDescription = null, tint = VaultObsidian, modifier = Modifier.size(14.dp))
+                        Text("Hex View", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = VaultObsidian)
+                    }
                 }
 
                 // Text Viewer
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            if (!item.isDirectory) {
-                                val txt = MtExplorerEngine.readTextPreview(item.file)
-                                viewingTextContent = Pair(item, txt)
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (canViewFile) DuoMacawBlue else DuoSwanBorder,
+                            lipColor = if (canViewFile) DuoMacawBlueLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = canViewFile) {
+                            activeSelectedFile?.let { item ->
+                                if (!item.isDirectory) {
+                                    val txt = MtExplorerEngine.readTextPreview(item.file)
+                                    viewingTextContent = Pair(item, txt)
+                                }
                             }
                         }
-                    },
-                    enabled = activeSelectedFile != null && !activeSelectedFile.isDirectory,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CosmicCardElevated,
-                        contentColor = CosmicTextPure
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Teks View", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.Visibility, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Teks View", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
 
                 // Delete
-                Button(
-                    onClick = {
-                        activeSelectedFile?.let { item ->
-                            val ok = MtExplorerEngine.deleteFileOrDirectory(item.file)
-                            onStatusMessage(if (ok) "Dihapus: ${item.name}" else "Gagal menghapus berkas")
-                            refreshPanes()
+                Box(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .duolingoButton(
+                            faceColor = if (hasSelection) DuoCardinalRed else DuoSwanBorder,
+                            lipColor = if (hasSelection) DuoCardinalRedLip else DuoHareLip,
+                            cornerRadius = 12.dp,
+                            lipHeight = 3.dp
+                        )
+                        .instantTouchPress(enabled = hasSelection) {
+                            activeSelectedFile?.let { item ->
+                                val ok = MtExplorerEngine.deleteFileOrDirectory(item.file)
+                                onStatusMessage(if (ok) "Dihapus: ${item.name}" else "Gagal menghapus berkas")
+                                refreshPanes()
+                            }
                         }
-                    },
-                    enabled = activeSelectedFile != null,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CosmicMagenta.copy(alpha = 0.2f),
-                        contentColor = CosmicMagenta
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(bottom = 3.dp, start = 10.dp, end = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Hapus", style = MaterialTheme.typography.labelMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text("Hapus", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    }
                 }
             }
         }
@@ -824,13 +949,12 @@ private fun PaneHeaderBar(
                         color = if (isActive) StarlightCyan else CosmicTextMuted,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
+                    TruncatedHoldTooltipText(
                         text = currentPath.name.ifBlank { "/" },
                         style = MaterialTheme.typography.labelMedium,
                         color = CosmicTextPure,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 1
                     )
                 }
             }
@@ -883,13 +1007,13 @@ private fun MtFileRow(
 
             // Name & Info
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                TruncatedHoldTooltipText(
                     text = item.name,
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isSelected) StarlightCyan else CosmicTextPure,
                     fontWeight = if (item.isDirectory || isSelected) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    onClick = { onClick() }
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(

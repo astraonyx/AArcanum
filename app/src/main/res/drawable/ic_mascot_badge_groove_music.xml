@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Headphone Arch -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M14,36 C14,20 22,12 32,12 C42,12 50,20 50,36"
+        android:strokeWidth="5"
+        android:strokeColor="#EC4899" />
+    <!-- Earcups -->
+    <path
+        android:fillColor="#9333EA"
+        android:pathData="M8,32 L18,32 L18,50 L8,50 Z" />
+    <path
+        android:fillColor="#9333EA"
+        android:pathData="M46,32 L56,32 L56,50 L46,50 Z" />
+    <!-- Center Musical Note -->
+    <path
+        android:fillColor="#58CC02"
+        android:pathData="M30,26 L42,22 L42,42 C42,45 39,48 35,48 C32,48 29,46 29,43 C29,40 32,38 35,38 C36,38 37,38 38,39 L38,28 L30,31 Z" />
+</vector>

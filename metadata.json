@@ -1,6 +1,6 @@
 {
   "name": "Arcanum",
-  "description": "",
+  "description": "Brankas keamanan 3-lapis, manajemen file terenkripsi, steganografi, dan media player.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

@@ -1,14 +1,10 @@
 package com.example.ui
 
 import android.graphics.BitmapFactory
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,8 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
@@ -32,18 +28,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Collections
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.GridOn
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ZoomIn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,8 +52,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -71,8 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import com.example.data.VaultCategory
 import com.example.data.VaultItemEntity
 import com.example.ui.theme.CosmicBorderHairline
@@ -81,20 +68,35 @@ import com.example.ui.theme.CosmicSurface
 import com.example.ui.theme.CosmicTextMuted
 import com.example.ui.theme.CosmicTextPure
 import com.example.ui.theme.CosmicVoid
+import com.example.ui.theme.DuoFeatherGreen
+import com.example.ui.theme.DuoFeatherGreenLip
+import com.example.ui.theme.DuoHareLip
+import com.example.ui.theme.DuoMacawBlue
+import com.example.ui.theme.DuoMacawBlueLip
+import com.example.ui.theme.DuoPureWhite
+import com.example.ui.theme.DuoSwanBorder
 import com.example.ui.theme.PastelLavender
 import com.example.ui.theme.PastelMint
 import com.example.ui.theme.PastelRose
 import com.example.ui.theme.PastelSky
-import com.example.ui.theme.StarlightCyan
+import com.example.ui.theme.duolingoButton
+import com.example.ui.theme.duolingoCard
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private data class PhotoDateSection(
+    val headerTitle: String,
+    val subtitle: String,
+    val photos: List<VaultItemEntity>
+)
 
 /**
- * Tab Galeri Foto Khusus (Dedicated Photo Gallery Tab):
- * 1. Isolasi Penuh Multi-Brankas: Hanya menampilkan foto milik Brankas Aktif (activeVaultId).
- * 2. Grid Squircle 3-Kolom Apple Minimalist dengan preview thumbnail instan.
- * 3. Filter Album / Subfolder terorganisir di bagian atas.
- * 4. Pencarian foto instan berdasarkan nama.
- * 5. Lightbox Fullscreen interaktif dengan gesture Multi-Touch Pinch-to-Zoom & Pan.
+ * Galeri Foto Gaya Google Photos:
+ * - Grid rapat per tanggal/grup (2.dp spacing) dengan opsi kepadatan 3 atau 4 kolom.
+ * - Smart Search & Chip Filter ringkas.
+ * - Ketuk foto untuk membuka Google Photos Fullscreen Horizontal Swipe Viewer (Geser Kanan-Kiri, Zoom Cubit, Thumbnail Strip, & Bar Aksi Cepat).
  */
 @Composable
 fun VaultPhotoGalleryScreen(
@@ -105,52 +107,104 @@ fun VaultPhotoGalleryScreen(
     onRequestExportOrShareWithBiometric: (VaultItemEntity, Boolean) -> Unit,
     onDeleteItem: (VaultItemEntity) -> Unit
 ) {
-    // 1. Strict vault isolation: hanya ambil file gambar milik brankas aktif
     val imageExtensions = remember { setOf("jpg", "jpeg", "png", "webp", "heic", "gif", "bmp", "svg") }
     val vaultPhotos = remember(allItems, activeVaultId) {
         allItems.filter { item ->
             item.vaultProfileId == activeVaultId &&
-                    (item.category == VaultCategory.IMAGE.name || item.extension.lowercase() in imageExtensions)
+                (item.category == VaultCategory.IMAGE.name || item.extension.lowercase() in imageExtensions)
         }
     }
 
     var selectedAlbum by remember { mutableStateOf<String?>(null) }
     var photoSearchQuery by remember { mutableStateOf("") }
-    var activeLightboxPhoto by remember { mutableStateOf<VaultItemEntity?>(null) }
+    var activeSmartFilter by remember { mutableStateOf("ALL") }
+    var gridColumnsCount by remember { mutableIntStateOf(3) } // 3 or 4 columns like Google Photos pinch density
 
-    // Ekstrak daftar album / folder dari foto di brankas
     val albums = remember(vaultPhotos) {
         vaultPhotos.mapNotNull { it.groupArchiveName?.ifBlank { null } }.distinct().sorted()
     }
 
-    // Filter berdasarkan album dan query pencarian
-    val displayedPhotos = remember(vaultPhotos, selectedAlbum, photoSearchQuery) {
+    val displayedPhotos = remember(vaultPhotos, selectedAlbum, photoSearchQuery, activeSmartFilter) {
+        val q = photoSearchQuery.trim()
         vaultPhotos.filter { item ->
             val matchAlbum = selectedAlbum == null || item.groupArchiveName.equals(selectedAlbum, ignoreCase = true)
-            val matchQuery = photoSearchQuery.isBlank() ||
-                    item.name.contains(photoSearchQuery, ignoreCase = true) ||
-                    item.extension.contains(photoSearchQuery, ignoreCase = true)
-            matchAlbum && matchQuery
+            val sizeLabel = formatFileSize(item.sizeBytes)
+            val matchQuery = q.isBlank() ||
+                item.name.contains(q, ignoreCase = true) ||
+                item.extension.contains(q, ignoreCase = true) ||
+                "${item.name}.${item.extension}".contains(q, ignoreCase = true) ||
+                sizeLabel.contains(q, ignoreCase = true) ||
+                (item.groupArchiveName?.contains(q, ignoreCase = true) == true) ||
+                (q.equals("terkunci", ignoreCase = true) && item.isEncrypted) ||
+                (q.equals("terbuka", ignoreCase = true) && !item.isEncrypted)
+            val matchChip = when (activeSmartFilter) {
+                "OPEN" -> !item.isEncrypted
+                "LOCKED" -> item.isEncrypted
+                "LARGE" -> item.sizeBytes >= 2L * 1024L * 1024L
+                "PNG" -> item.extension.equals("png", ignoreCase = true)
+                "JPG" -> item.extension.equals("jpg", ignoreCase = true) || item.extension.equals("jpeg", ignoreCase = true)
+                "GIF_WEBP" -> item.extension.equals("gif", ignoreCase = true) || item.extension.equals("webp", ignoreCase = true)
+                else -> true
+            }
+            matchAlbum && matchQuery && matchChip
         }
+    }
+
+    // Group photos by date/timeline section like Google Photos
+    val dateSections = remember(displayedPhotos) {
+        val formatter = SimpleDateFormat("EEEE, d MMM yyyy", Locale("id", "ID"))
+        displayedPhotos
+            .groupBy { photo ->
+                val f = File(photo.internalPlainPath)
+                val lastMod = when {
+                    f.exists() && f.lastModified() > 0L -> f.lastModified()
+                    photo.addedAt > 0L -> photo.addedAt
+                    else -> 0L
+                }
+                val dateLabel = if (lastMod > 0L) {
+                    val diffDays = ((System.currentTimeMillis() - lastMod) / (1000L * 60L * 60L * 24L)).toInt()
+                    when {
+                        diffDays <= 0 -> "Hari Ini"
+                        diffDays == 1 -> "Kemarin"
+                        else -> formatter.format(Date(lastMod))
+                    }
+                } else {
+                    "Koleksi Brankas"
+                }
+                dateLabel
+            }
+            .map { (dateTitle, itemsInDate) ->
+                val albumHint = itemsInDate.mapNotNull { it.groupArchiveName?.takeIf { a -> a.isNotBlank() } }.distinct().joinToString(" • ")
+                PhotoDateSection(
+                    headerTitle = dateTitle,
+                    subtitle = if (albumHint.isNotBlank()) "${itemsInDate.size} foto • $albumHint" else "${itemsInDate.size} foto",
+                    photos = itemsInDate
+                )
+            }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(CosmicVoid)
             .testTag("vault_photo_gallery_screen")
     ) {
-        // --- 1. HEADER & SEARCH BAR GALAXY GLASSMORPHISM ---
-        Surface(
-            color = CosmicObsidian,
-            modifier = Modifier.fillMaxWidth(),
-            border = androidx.compose.foundation.BorderStroke(1.dp, CosmicBorderHairline)
+        // --- 1. GOOGLE PHOTOS MINIMALIST TOP BAR & SEARCH ---
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .duolingoCard(
+                    backgroundColor = CosmicObsidian,
+                    borderColor = DuoSwanBorder,
+                    lipColor = DuoHareLip,
+                    cornerRadius = 20.dp,
+                    borderWidth = 2.dp,
+                    lipHeight = 3.dp
+                )
+                .padding(bottom = 3.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -160,62 +214,103 @@ fun VaultPhotoGalleryScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Surface(
-                            color = PastelSky.copy(alpha = 0.18f),
-                            shape = CircleShape,
-                            modifier = Modifier.size(34.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Collections,
-                                    contentDescription = null,
-                                    tint = PastelSky,
-                                    modifier = Modifier.size(18.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .duolingoButton(
+                                    faceColor = DuoMacawBlue,
+                                    lipColor = DuoMacawBlueLip,
+                                    cornerRadius = 10.dp,
+                                    lipHeight = 2.dp
                                 )
-                            }
+                                .padding(bottom = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Collections,
+                                contentDescription = null,
+                                tint = DuoPureWhite,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
+                        val displayVaultNum = com.example.data.SecurityConfig.displayVaultNumber(activeVaultId)
                         Column {
                             Text(
-                                text = "Galeri Foto Brankas $activeVaultId",
+                                text = "Google Photos Brankas #$displayVaultNum",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = CosmicTextPure
                             )
                             Text(
-                                text = "${displayedPhotos.size} foto terenkripsi • Terisolasi",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "${displayedPhotos.size} foto • Ketuk foto untuk geser slide kanan-kiri",
+                                style = MaterialTheme.typography.labelSmall,
                                 color = CosmicTextMuted
                             )
                         }
                     }
 
-                    Surface(
-                        color = PastelMint.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(12.dp)
+                    // Toggle 3x3 vs 4x4 Google Photos Grid Density
+                    Box(
+                        modifier = Modifier
+                            .height(32.dp)
+                            .duolingoButton(
+                                faceColor = DuoFeatherGreen,
+                                lipColor = DuoFeatherGreenLip,
+                                cornerRadius = 10.dp,
+                                lipHeight = 2.dp
+                            )
+                            .clickable {
+                                gridColumnsCount = if (gridColumnsCount == 3) 4 else 3
+                            }
+                            .padding(bottom = 2.dp, start = 8.dp, end = 8.dp)
+                            .testTag("gallery_toggle_grid_density_button"),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "BRANKAS $activeVaultId",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = PastelMint,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (gridColumnsCount == 3) Icons.Default.GridOn else Icons.Default.GridView,
+                                contentDescription = "Ubah Kerapatan Grid",
+                                tint = DuoPureWhite,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "${gridColumnsCount}x",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = DuoPureWhite
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // YouTube / Apple Minimalist Search Bar
+                // Capsule Search Bar ala Google Photos
                 OutlinedTextField(
                     value = photoSearchQuery,
                     onValueChange = { photoSearchQuery = it },
-                    placeholder = { Text("Cari nama foto atau album...", color = CosmicTextMuted, style = MaterialTheme.typography.bodyMedium) },
+                    placeholder = {
+                        Text(
+                            "Cari di Foto (.png, .jpg, ukuran, album)...",
+                            color = CosmicTextMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = "Cari", tint = PastelSky, modifier = Modifier.size(18.dp))
                     },
                     trailingIcon = {
-                        if (photoSearchQuery.isNotBlank()) {
-                            IconButton(onClick = { photoSearchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                        if (photoSearchQuery.isNotBlank() || activeSmartFilter != "ALL") {
+                            IconButton(
+                                onClick = {
+                                    photoSearchQuery = ""
+                                    activeSmartFilter = "ALL"
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
                                 Icon(Icons.Default.Close, contentDescription = "Hapus", tint = CosmicTextMuted, modifier = Modifier.size(16.dp))
                             }
                         }
@@ -223,77 +318,104 @@ fun VaultPhotoGalleryScreen(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(46.dp)
+                        .testTag("gallery_smart_search_input"),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = CosmicSurface,
                         unfocusedContainerColor = CosmicSurface,
-                        focusedBorderColor = PastelSky.copy(alpha = 0.8f),
+                        focusedBorderColor = PastelSky,
                         unfocusedBorderColor = CosmicBorderHairline,
                         focusedTextColor = CosmicTextPure,
                         unfocusedTextColor = CosmicTextPure
                     )
                 )
-            }
-        }
 
-        // --- 2. ALBUM FILTER ROW ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val isAllSelected = selectedAlbum == null
-            Surface(
-                color = if (isAllSelected) PastelSky else CosmicSurface,
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isAllSelected) PastelSky else CosmicBorderHairline),
-                modifier = Modifier.clickable { selectedAlbum = null }
-            ) {
-                Text(
-                    text = "Semua Foto (${vaultPhotos.size})",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isAllSelected) CosmicVoid else CosmicTextPure,
-                    fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-            }
-
-            albums.forEach { albumName ->
-                val isSelected = selectedAlbum == albumName
-                val count = vaultPhotos.count { it.groupArchiveName.equals(albumName, ignoreCase = true) }
-                Surface(
-                    color = if (isSelected) PastelLavender else CosmicSurface,
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) PastelLavender else CosmicBorderHairline),
-                    modifier = Modifier.clickable { selectedAlbum = albumName }
+                // Compact Filter Chips + Album Pills in 1 Scrollable Row
+                val filterChips = remember {
+                    listOf(
+                        "ALL" to "Semua",
+                        "OPEN" to "Terbuka",
+                        "LOCKED" to "Terkunci NYX",
+                        "PNG" to ".PNG",
+                        "JPG" to ".JPG",
+                        "GIF_WEBP" to ".GIF/.WEBP",
+                        "LARGE" to ">2MB"
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = if (isSelected) CosmicVoid else PastelLavender,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "$albumName ($count)",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) CosmicVoid else CosmicTextPure,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                        )
+                    filterChips.forEach { (key, label) ->
+                        val selected = activeSmartFilter == key && selectedAlbum == null
+                        Surface(
+                            color = if (selected) PastelSky else CosmicSurface,
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (selected) PastelSky else CosmicBorderHairline
+                            ),
+                            modifier = Modifier
+                                .clickable {
+                                    selectedAlbum = null
+                                    activeSmartFilter = if (activeSmartFilter == key && key != "ALL") "ALL" else key
+                                }
+                                .testTag("gallery_smart_chip_$key")
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (selected) DuoPureWhite else CosmicTextPure,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+
+                    albums.forEach { albumName ->
+                        val isSelected = selectedAlbum == albumName
+                        val count = vaultPhotos.count { it.groupArchiveName.equals(albumName, ignoreCase = true) }
+                        Surface(
+                            color = if (isSelected) PastelLavender else CosmicSurface,
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isSelected) PastelLavender else CosmicBorderHairline
+                            ),
+                            modifier = Modifier.clickable {
+                                selectedAlbum = if (isSelected) null else albumName
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint = if (isSelected) DuoPureWhite else PastelLavender,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "$albumName ($count)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isSelected) DuoPureWhite else CosmicTextPure,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // --- 3. 3-COLUMN SQUIRCLE PHOTO GRID ---
+        // --- 2. GOOGLE PHOTOS DATE-GROUPED TIGHT PHOTO GRID ---
         if (displayedPhotos.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -302,16 +424,21 @@ fun VaultPhotoGalleryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CosmicDragonAvatar(mood = MascotMood.IDLE_BREATHE, size = 96.dp)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    CosmicDragonAvatar(mood = MascotMood.IDLE_BREATHE, size = 84.dp)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val displayVaultNum = com.example.data.SecurityConfig.displayVaultNumber(activeVaultId)
                     Text(
-                        text = if (photoSearchQuery.isNotBlank()) "Tidak ada foto yang cocok" else "Belum Ada Foto di Brankas $activeVaultId",
+                        text = if (photoSearchQuery.isNotBlank() || activeSmartFilter != "ALL") {
+                            "Tidak ada foto yang cocok dengan filter"
+                        } else {
+                            "Belum Ada Foto di Brankas #$displayVaultNum"
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         color = CosmicTextPure,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "Impor foto dari galeri HP Anda untuk dienkripsi dengan keamanan tingkat tinggi.",
+                        text = "Impor foto dari galeri perangkat atau unduh melalui Mori.",
                         style = MaterialTheme.typography.bodySmall,
                         color = CosmicTextMuted,
                         textAlign = TextAlign.Center,
@@ -321,45 +448,61 @@ fun VaultPhotoGalleryScreen(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                columns = GridCells.Fixed(gridColumnsCount),
+                contentPadding = PaddingValues(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 110.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(displayedPhotos, key = { it.id }) { photo ->
-                    PhotoSquircleCard(
-                        photo = photo,
-                        onClick = { activeLightboxPhoto = photo },
-                        onRequestPinToggleEncrypt = { onRequestPinToggleEncrypt(photo) }
-                    )
+                dateSections.forEach { section ->
+                    item(
+                        key = "header_${section.headerTitle}",
+                        span = { GridItemSpan(maxLineSpan) }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = section.headerTitle,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = CosmicTextPure
+                            )
+                            Text(
+                                text = section.subtitle,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CosmicTextMuted,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    items(section.photos, key = { it.id }) { photo ->
+                        GooglePhotosTileCard(
+                            photo = photo,
+                            onClick = {
+                                if (photo.isEncrypted) {
+                                    onRequestPinToggleEncrypt(photo)
+                                } else {
+                                    onOpenMediaItem(photo)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
-
-    // --- 4. LIGHTBOX FULLSCREEN PINCH-TO-ZOOM OVERLAY ---
-    activeLightboxPhoto?.let { photo ->
-        PhotoLightboxDialog(
-            photo = photo,
-            allAlbumPhotos = displayedPhotos,
-            onDismiss = { activeLightboxPhoto = null },
-            onSelectPhoto = { activeLightboxPhoto = it },
-            onRequestPinToggleEncrypt = { onRequestPinToggleEncrypt(photo) },
-            onRequestExportOrShare = { isShare -> onRequestExportOrShareWithBiometric(photo, isShare) },
-            onDeletePhoto = {
-                onDeleteItem(photo)
-                activeLightboxPhoto = null
-            }
-        )
-    }
 }
 
 @Composable
-private fun PhotoSquircleCard(
+private fun GooglePhotosTileCard(
     photo: VaultItemEntity,
-    onClick: () -> Unit,
-    onRequestPinToggleEncrypt: () -> Unit
+    onClick: () -> Unit
 ) {
     val plainFile = remember(photo.internalPlainPath) { File(photo.internalPlainPath) }
     val bitmap = remember(photo.id, photo.isEncrypted) {
@@ -372,235 +515,98 @@ private fun PhotoSquircleCard(
         } else null
     }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(18.dp))
-            .border(1.dp, CosmicBorderHairline, RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(4.dp))
+            .background(CosmicObsidian)
+            .border(0.5.dp, CosmicBorderHairline, RoundedCornerShape(4.dp))
             .clickable { onClick() }
-            .testTag("photo_card_${photo.id}"),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = CosmicObsidian)
+            .testTag("photo_card_${photo.id}")
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = photo.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(CosmicSurface),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = null,
-                        tint = PastelSky.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-
-            // Lock / Encrypted Badge Indicator
-            if (photo.isEncrypted) {
-                Surface(
-                    color = Color.Black.copy(alpha = 0.65f),
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(24.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Terenkripsi",
-                            tint = PastelRose,
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Fullscreen Interactive Lightbox with Pinch-to-Zoom & Pan
- */
-@Composable
-private fun PhotoLightboxDialog(
-    photo: VaultItemEntity,
-    allAlbumPhotos: List<VaultItemEntity>,
-    onDismiss: () -> Unit,
-    onSelectPhoto: (VaultItemEntity) -> Unit,
-    onRequestPinToggleEncrypt: () -> Unit,
-    onRequestExportOrShare: (Boolean) -> Unit,
-    onDeletePhoto: () -> Unit
-) {
-    val plainFile = remember(photo.internalPlainPath) { File(photo.internalPlainPath) }
-    var zoomScale by remember { mutableFloatStateOf(1f) }
-    var panOffsetX by remember { mutableFloatStateOf(0f) }
-    var panOffsetY by remember { mutableFloatStateOf(0f) }
-
-    val bitmap = remember(photo.id, photo.isEncrypted) {
-        if (!photo.isEncrypted && plainFile.exists()) {
-            try {
-                BitmapFactory.decodeFile(plainFile.absolutePath)
-            } catch (_: Exception) {
-                null
-            }
-        } else null
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.94f))
-        ) {
-            // Top Controls Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 16.dp, vertical = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onDismiss, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Tutup", tint = Color.White)
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "${photo.name}.${photo.extension}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${formatFileSize(photo.sizeBytes)} • ${if (photo.isEncrypted) "Terenkripsi NYX2" else "Terbuka"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = { onRequestExportOrShare(true) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Bagikan", tint = PastelSky)
-                    }
-                    IconButton(onClick = onDeletePhoto) {
-                        Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = PastelRose)
-                    }
-                }
-            }
-
-            // Central Zoomable Image Area
+        if (bitmap != null && !bitmap.isRecycled) {
+            val rememberedImageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+            Image(
+                bitmap = rememberedImageBitmap,
+                contentDescription = photo.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else if (!photo.isEncrypted && !photo.mediaUriString.isNullOrBlank()) {
+            AsyncImage(
+                model = photo.mediaUriString,
+                contentDescription = photo.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(vertical = 80.dp),
+                    .background(CosmicSurface),
                 contentAlignment = Alignment.Center
             ) {
-                if (photo.isEncrypted) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = PastelRose, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Foto Terenkripsi AES-256",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Buka kunci menggunakan PIN brankas untuk melihat foto ini.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Button(
-                            onClick = onRequestPinToggleEncrypt,
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PastelSky, contentColor = CosmicVoid)
-                        ) {
-                            Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Buka PIN & Tampilkan", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                } else if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = photo.name,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(photo.id) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    zoomScale = (zoomScale * zoom).coerceIn(1f, 5f)
-                                    if (zoomScale > 1f) {
-                                        panOffsetX += pan.x
-                                        panOffsetY += pan.y
-                                    } else {
-                                        panOffsetX = 0f
-                                        panOffsetY = 0f
-                                    }
-                                }
-                            }
-                            .graphicsLayer {
-                                scaleX = zoomScale
-                                scaleY = zoomScale
-                                translationX = panOffsetX
-                                translationY = panOffsetY
-                            }
-                    )
-                } else {
-                    Text("Gagal memuat gambar", color = Color.White)
-                }
+                Icon(
+                    imageVector = if (photo.isEncrypted) Icons.Default.Lock else Icons.Default.Image,
+                    contentDescription = null,
+                    tint = if (photo.isEncrypted) PastelRose else PastelSky.copy(alpha = 0.65f),
+                    modifier = Modifier.size(28.dp)
+                )
             }
+        }
 
-            // Bottom Reset Zoom button if zoomed
-            if (zoomScale > 1.1f) {
-                Surface(
-                    color = Color.Black.copy(alpha = 0.75f),
-                    shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp)
-                        .clickable {
-                            zoomScale = 1f
-                            panOffsetX = 0f
-                            panOffsetY = 0f
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.ZoomIn, contentDescription = null, tint = PastelSky, modifier = Modifier.size(16.dp))
-                        Text("Reset Zoom (100%)", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                    }
+        // Subtle Google Photos Top-Right Format / Lock Badge
+        if (photo.isEncrypted) {
+            Surface(
+                color = Color.Black.copy(alpha = 0.68f),
+                shape = CircleShape,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(5.dp)
+                    .size(22.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Terenkripsi",
+                        tint = PastelRose,
+                        modifier = Modifier.size(12.dp)
+                    )
                 }
             }
+        } else if (photo.extension.lowercase() in setOf("gif", "webp", "png")) {
+            Surface(
+                color = Color.Black.copy(alpha = 0.52f),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+            ) {
+                Text(
+                    text = photo.extension.uppercase(),
+                    fontSize = 8.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                )
+            }
+        }
+
+        // Subtle Bottom-Left Size Overlay
+        Surface(
+            color = Color.Black.copy(alpha = 0.50f),
+            shape = RoundedCornerShape(topEnd = 6.dp),
+            modifier = Modifier.align(Alignment.BottomStart)
+        ) {
+            Text(
+                text = formatFileSize(photo.sizeBytes),
+                fontSize = 8.sp,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+            )
         }
     }
 }

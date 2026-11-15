@@ -29,4 +29,8 @@ interface VaultDao {
 
     @Query("SELECT COUNT(*) FROM vault_items WHERE vaultProfileId = :vaultId")
     suspend fun getCountForVault(vaultId: Int): Int
+
+    @Query("SELECT * FROM vault_items WHERE vaultProfileId = :vaultId AND LOWER(name) = LOWER(:name) AND LOWER(extension) = LOWER(:ext)")
+    suspend fun findMatchingItemsByNameAndExt(vaultId: Int, name: String, ext: String): List<VaultItemEntity>
 }
+

@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Outer Cosmic Aura Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M32,4 L56,18 L56,46 L32,60 L8,46 L8,18 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#38BDF8" />
+    <!-- Inner Hexagonal Aegis Shield -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M32,10 L50,20 L50,40 C50,48 32,56 32,56 C32,56 14,48 14,40 L14,20 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FDE047" />
+    <!-- Shield Core Star Emblem -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,18 L35,28 L45,31 L35,34 L32,44 L29,34 L19,31 L29,28 Z" />
+</vector>

@@ -116,6 +116,8 @@ import com.example.ui.theme.PastelLavender
 import com.example.ui.theme.SolarGold
 import com.example.ui.theme.StarlightCyan
 import com.example.ui.theme.NebulaViolet
+import com.example.ui.theme.duolingoButton
+import com.example.ui.theme.duolingoCard
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -176,7 +178,7 @@ fun triggerHardwareBiometricIfAvailable(
 fun SecurityGateScreen(
     securityState: SecurityGateUiState,
     onDigitClick: (Int) -> Unit,
-    onCharClick: (Char) -> Unit = { c -> onDigitClick(c.digitToIntOrNull() ?: 0) },
+    onCharClick: (Char) -> Unit = { c -> c.digitToIntOrNull()?.let(onDigitClick) },
     onBackspaceClick: () -> Unit,
     onClearClick: () -> Unit,
     onBiometricSuccess: () -> Unit,
@@ -256,7 +258,7 @@ fun SecurityGateScreen(
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Arcanum Celestial Vault",
+                                text = "Arcanum Vault",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = CosmicTextPure,
                                 fontWeight = FontWeight.Bold,
@@ -275,20 +277,19 @@ fun SecurityGateScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Tombol Lupa PIN / Pemulihan Sandi (Apple Frosted Glass Pill)
-                    Surface(
+                    // Tombol Lupa PIN / Pemulihan Sandi (Duolingo 3D Pill)
+                    Box(
                         modifier = Modifier
                             .wrapContentWidth()
-                            .clip(RoundedCornerShape(50))
-                            .instantTouchPress { onForgotPinClick() }
-                            .testTag("forgot_pin_lock_button"),
-                        color = CosmicGlass,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                listOf(StarlightCyan.copy(alpha = 0.6f), NebulaViolet.copy(alpha = 0.6f))
+                            .duolingoButton(
+                                faceColor = com.example.ui.theme.DuoMacawBlue,
+                                lipColor = com.example.ui.theme.DuoMacawBlueLip,
+                                cornerRadius = 18.dp,
+                                lipHeight = 3.dp
                             )
-                        )
+                            .instantTouchPress { onForgotPinClick() }
+                            .padding(bottom = 3.dp)
+                            .testTag("forgot_pin_lock_button")
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -298,13 +299,13 @@ fun SecurityGateScreen(
                             Icon(
                                 imageVector = Icons.Default.HelpOutline,
                                 contentDescription = "Lupa PIN",
-                                tint = StarlightCyan,
+                                tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "Lupa PIN?",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = CosmicTextPure,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
@@ -312,9 +313,120 @@ fun SecurityGateScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Minimalist 4-Step Progress Bar
+                // Interactive Cursor-Tracking & Form-Verification Cosmic Shield Mascot Stage
+                val globalPose = com.example.ui.theme.AppThemeController.mascotActivityPose
+                val globalAccessory = com.example.ui.theme.AppThemeController.mascotAccessory
+                var showLockMascotStage by remember { mutableStateOf(true) }
+                var manualCursorX by remember { mutableStateOf(0f) }
+                var manualCursorY by remember { mutableStateOf(0f) }
+
+                val liveFormStatus = when {
+                    securityState.errorMessage != null -> MascotFormVerificationStatus.VERIFICATION_FAILED
+                    securityState.stage == AuthStage.BIOMETRIC_STEP -> MascotFormVerificationStatus.VERIFIED_SUCCESS
+                    securityState.enteredPin.length >= 4 -> MascotFormVerificationStatus.ALERT_SHIELD_VERIFYING
+                    securityState.enteredPin.isNotEmpty() -> MascotFormVerificationStatus.TYPING_INSPECT
+                    else -> MascotFormVerificationStatus.IDLE_CURSOR_TRACK
+                }
+                val effectiveCursorX = if (securityState.enteredPin.isEmpty()) {
+                    manualCursorX
+                } else {
+                    ((securityState.enteredPin.length.coerceIn(0, 6) / 6f) * 1.6f - 0.8f)
+                }
+                val effectiveCursorY = if (securityState.enteredPin.isNotEmpty()) 0.45f else manualCursorY
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            abundantMascotPoseAssets.forEach { assetItem ->
+                                val isSel = globalPose == assetItem.pose
+                                Box(
+                                    modifier = Modifier
+                                        .duolingoButton(
+                                            faceColor = if (isSel) assetItem.accentColor else com.example.ui.theme.DuoPureWhite,
+                                            lipColor = if (isSel) com.example.ui.theme.AppThemeController.darkenColor(assetItem.accentColor, 0.72f) else com.example.ui.theme.DuoHareLip,
+                                            cornerRadius = 10.dp,
+                                            lipHeight = 2.dp
+                                        )
+                                        .instantTouchPress {
+                                            com.example.ui.theme.AppThemeController.mascotActivityPose = assetItem.pose
+                                            com.example.ui.theme.AppThemeController.mascotAccessory = assetItem.accessory
+                                            com.example.ui.theme.AppThemeController.poseTriggerNonce++
+                                        }
+                                        .padding(bottom = 2.dp)
+                                        .padding(horizontal = 7.dp, vertical = 4.dp)
+                                        .testTag("lock_pose_chip_${assetItem.pose.name.lowercase()}")
+                                ) {
+                                    Text(
+                                        text = assetItem.pose.displayName.substringBefore(" "),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = if (isSel) Color.White else CosmicTextPure,
+                                        fontSize = 10.sp,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .duolingoButton(
+                                    faceColor = com.example.ui.theme.DuoBeetlePurple,
+                                    lipColor = com.example.ui.theme.DuoBeetlePurpleLip,
+                                    cornerRadius = 10.dp,
+                                    lipHeight = 2.dp
+                                )
+                                .instantTouchPress { showLockMascotStage = !showLockMascotStage }
+                                .padding(bottom = 2.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .testTag("toggle_lock_cursor_mascot_button")
+                        ) {
+                            Text(
+                                text = if (showLockMascotStage) "Sembunyikan" else "Panggung 3D",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    if (showLockMascotStage) {
+                        CursorTrackingAndFormReactiveMascotStage(
+                            cursorNormX = effectiveCursorX,
+                            cursorNormY = effectiveCursorY,
+                            activePose = globalPose,
+                            accessory = globalAccessory,
+                            formStatus = liveFormStatus,
+                            onCursorMoved = { nx, ny ->
+                                manualCursorX = nx
+                                manualCursorY = ny
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Duolingo 4-Step Progress Bar
                 MinimalSecurityProgressRow(currentStage = securityState.stage)
             }
 
@@ -399,13 +511,13 @@ private fun MinimalSecurityProgressRow(currentStage: AuthStage) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(6.dp)
+                        .height(10.dp)
                         .clip(CircleShape)
                         .background(
                             when {
-                                isCompleted -> PastelMint
-                                isActive -> StarlightCyan
-                                else -> Color(0x3338BDF8)
+                                isCompleted -> com.example.ui.theme.DuoFeatherGreen
+                                isActive -> com.example.ui.theme.DuoMacawBlue
+                                else -> com.example.ui.theme.DuoSwanBorder
                             }
                         )
                 )
@@ -420,9 +532,9 @@ private fun MinimalSecurityProgressRow(currentStage: AuthStage) {
                 AuthStage.BIOMETRIC_STEP -> "Lapis 4 dari 4 • Pemindaian Sidik Jari"
                 AuthStage.UNLOCKED -> "Terbuka"
             },
-            style = MaterialTheme.typography.labelMedium,
-            color = StarlightCyan,
-            fontWeight = FontWeight.SemiBold
+            style = MaterialTheme.typography.labelLarge,
+            color = com.example.ui.theme.DuoFeatherGreenLip,
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -442,24 +554,32 @@ private fun PinEntryGateCard(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Minimalist PIN Header & 6 Slots
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = CosmicGlass),
-            border = androidx.compose.foundation.BorderStroke(1.dp, CosmicGradientGlassHighlight)
+        // Duolingo 3D PIN Header & 6 Slots Card
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .duolingoCard(
+                    backgroundColor = com.example.ui.theme.DuoPureWhite,
+                    borderColor = com.example.ui.theme.DuoSwanBorder,
+                    lipColor = com.example.ui.theme.DuoHareLip,
+                    cornerRadius = 26.dp,
+                    borderWidth = 2.dp,
+                    lipHeight = 5.dp
+                )
+                .padding(bottom = 5.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                    .padding(horizontal = 14.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = stage.title,
                     style = MaterialTheme.typography.titleLarge,
-                    color = VaultPureWhite,
-                    fontWeight = FontWeight.Bold
+                    color = CosmicTextPure,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -471,37 +591,45 @@ private fun PinEntryGateCard(
                         "Masukkan 6 karakter PIN untuk membuka brankas"
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = VaultPureWhite.copy(alpha = 0.68f),
+                    color = com.example.ui.theme.DuoWolfSubtle,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // 6-Character Minimalist PIN Slots
+                // 6-Character Duolingo 3D Tile PIN Slots (Fluid weight so 720x1600px never clips!)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("pin_dots_indicator"),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
                 ) {
                     for (i in 0 until 6) {
                         val isFilled = i < enteredPin.length
                         val isCurrentSlot = i == enteredPin.length
                         Box(
                             modifier = Modifier
-                                .size(width = 42.dp, height = 48.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (isFilled) VaultLime else VaultObsidian
-                                )
-                                .border(
-                                    width = if (isCurrentSlot) 1.5.dp else 1.dp,
-                                    color = when {
-                                        isFilled -> VaultLime
-                                        isCurrentSlot -> VaultMintCard
-                                        else -> VaultSlate
-                                    },
-                                    shape = RoundedCornerShape(14.dp)
+                                .weight(1f)
+                                .widthIn(max = 44.dp)
+                                .height(48.dp)
+                                .then(
+                                    if (isFilled) {
+                                        Modifier.duolingoButton(
+                                            faceColor = com.example.ui.theme.DuoFeatherGreen,
+                                            lipColor = com.example.ui.theme.DuoFeatherGreenLip,
+                                            cornerRadius = 13.dp,
+                                            lipHeight = 4.dp
+                                        ).padding(bottom = 4.dp)
+                                    } else {
+                                        Modifier.duolingoCard(
+                                            backgroundColor = com.example.ui.theme.DuoSnowCanvas,
+                                            borderColor = if (isCurrentSlot) com.example.ui.theme.DuoMacawBlue else com.example.ui.theme.DuoSwanBorder,
+                                            lipColor = if (isCurrentSlot) com.example.ui.theme.DuoMacawBlueLip else com.example.ui.theme.DuoHareLip,
+                                            cornerRadius = 13.dp,
+                                            borderWidth = 2.dp,
+                                            lipHeight = 3.dp
+                                        ).padding(bottom = 3.dp)
+                                    }
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -509,14 +637,14 @@ private fun PinEntryGateCard(
                                 Text(
                                     text = enteredPin[i].toString(),
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = VaultObsidian,
+                                    color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                             } else {
                                 Text(
                                     text = "•",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = VaultPureWhite.copy(alpha = 0.25f)
+                                    color = com.example.ui.theme.DuoMutedInk.copy(alpha = 0.45f)
                                 )
                             }
                         }
@@ -526,15 +654,15 @@ private fun PinEntryGateCard(
                 if (errorMessage != null) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
-                        color = VaultCoral.copy(alpha = 0.18f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, VaultCoral)
+                        color = com.example.ui.theme.DuoCardinalRedSoft,
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(2.dp, com.example.ui.theme.DuoCardinalRed)
                     ) {
                         Text(
                             text = errorMessage,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = VaultCoral,
-                            fontWeight = FontWeight.SemiBold,
+                            color = com.example.ui.theme.DuoCardinalRedLip,
+                            fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
@@ -550,34 +678,66 @@ private fun PinEntryGateCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            Surface(
-                color = if (!isAlphaMode) VaultLime else VaultCharcoal,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (!isAlphaMode) VaultLime else VaultSlate),
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .then(
+                        if (!isAlphaMode) {
+                            Modifier.duolingoButton(
+                                faceColor = com.example.ui.theme.DuoFeatherGreen,
+                                lipColor = com.example.ui.theme.DuoFeatherGreenLip,
+                                cornerRadius = 14.dp,
+                                lipHeight = 3.dp
+                            )
+                        } else {
+                            Modifier.duolingoCard(
+                                backgroundColor = com.example.ui.theme.DuoPureWhite,
+                                borderColor = com.example.ui.theme.DuoSwanBorder,
+                                lipColor = com.example.ui.theme.DuoHareLip,
+                                cornerRadius = 14.dp,
+                                borderWidth = 2.dp,
+                                lipHeight = 3.dp
+                            )
+                        }
+                    )
                     .clickable { isAlphaMode = false }
+                    .padding(bottom = 3.dp)
             ) {
                 Text(
                     text = "1 2 3 Angka",
-                    color = if (!isAlphaMode) VaultObsidian else VaultPureWhite,
+                    color = if (!isAlphaMode) Color.White else CosmicTextPure,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp)
                 )
             }
             Spacer(modifier = Modifier.width(10.dp))
-            Surface(
-                color = if (isAlphaMode) VaultLime else VaultCharcoal,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isAlphaMode) VaultLime else VaultSlate),
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .then(
+                        if (isAlphaMode) {
+                            Modifier.duolingoButton(
+                                faceColor = com.example.ui.theme.DuoMacawBlue,
+                                lipColor = com.example.ui.theme.DuoMacawBlueLip,
+                                cornerRadius = 14.dp,
+                                lipHeight = 3.dp
+                            )
+                        } else {
+                            Modifier.duolingoCard(
+                                backgroundColor = com.example.ui.theme.DuoPureWhite,
+                                borderColor = com.example.ui.theme.DuoSwanBorder,
+                                lipColor = com.example.ui.theme.DuoHareLip,
+                                cornerRadius = 14.dp,
+                                borderWidth = 2.dp,
+                                lipHeight = 3.dp
+                            )
+                        }
+                    )
                     .clickable { isAlphaMode = true }
+                    .padding(bottom = 3.dp)
             ) {
                 Text(
-                    text = "A B C Huruf (A-Z)",
-                    color = if (isAlphaMode) VaultObsidian else VaultPureWhite,
+                    text = "Q W E R T Y Huruf (A-Z)",
+                    color = if (isAlphaMode) Color.White else CosmicTextPure,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp)
@@ -587,7 +747,7 @@ private fun PinEntryGateCard(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Clean Minimalist 0ms Keypad (Digits or Alphanumeric)
+        // Duolingo 3D Tactile Keypad (Digits or Standard QWERTY Layout)
         if (!isAlphaMode) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -624,16 +784,22 @@ private fun PinEntryGateCard(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(VaultCharcoal)
+                            .duolingoButton(
+                                faceColor = com.example.ui.theme.DuoFoxOrange,
+                                lipColor = com.example.ui.theme.DuoFoxOrangeLip,
+                                cornerRadius = 18.dp,
+                                lipHeight = 4.dp
+                            )
                             .instantTouchPress { onClearClick() }
+                            .padding(bottom = 4.dp)
                             .testTag("pin_key_clear"),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "ULANG",
                             style = MaterialTheme.typography.labelLarge,
-                            color = VaultAmber
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
@@ -649,116 +815,181 @@ private fun PinEntryGateCard(
                         modifier = Modifier
                             .weight(1f)
                             .height(58.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(VaultCharcoal)
+                            .duolingoButton(
+                                faceColor = com.example.ui.theme.DuoCardinalRed,
+                                lipColor = com.example.ui.theme.DuoCardinalRedLip,
+                                cornerRadius = 18.dp,
+                                lipHeight = 4.dp
+                            )
                             .instantTouchPress { onBackspaceClick() }
+                            .padding(bottom = 4.dp)
                             .testTag("pin_key_backspace"),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Backspace,
                             contentDescription = "Backspace",
-                            tint = VaultPureWhite
+                            tint = Color.White
                         )
                     }
                 }
             }
         } else {
-            // Alphanumeric Keyboard (A to Z)
+            // Standard 3-Row QWERTY Keyboard Layout (Q-P, A-L, CLR + Z-M + Backspace)
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val letterRows = listOf(
-                    listOf('A', 'B', 'C', 'D', 'E', 'F', 'G'),
-                    listOf('H', 'I', 'J', 'K', 'L', 'M', 'N'),
-                    listOf('O', 'P', 'Q', 'R', 'S', 'T', 'U')
-                )
-                letterRows.forEach { rowLetters ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        rowLetters.forEach { ch ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(VaultCharcoal)
-                                    .border(1.dp, VaultSlate.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
-                                    .instantTouchPress { onCharClick(ch) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = ch.toString(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = VaultPureWhite,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
+                val row1 = listOf('Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P')
+                val row2 = listOf('A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L')
+                val row3 = listOf('Z', 'X', 'C', 'V', 'B', 'N', 'M')
 
-                // Row 4: V W X Y Z + Clear + Backspace
+                // Row 1: Q W E R T Y U I O P
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val lastLetters = listOf('V', 'W', 'X', 'Y', 'Z')
-                    lastLetters.forEach { ch ->
+                    row1.forEach { ch ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(46.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(VaultCharcoal)
-                                .border(1.dp, VaultSlate.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
-                                .instantTouchPress { onCharClick(ch) },
+                                .height(48.dp)
+                                .duolingoCard(
+                                    backgroundColor = com.example.ui.theme.DuoPureWhite,
+                                    borderColor = com.example.ui.theme.DuoSwanBorder,
+                                    lipColor = com.example.ui.theme.DuoHareLip,
+                                    cornerRadius = 10.dp,
+                                    borderWidth = 2.dp,
+                                    lipHeight = 3.dp
+                                )
+                                .instantTouchPress { onCharClick(ch) }
+                                .padding(bottom = 3.dp)
+                                .testTag("pin_key_$ch"),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = ch.toString(),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = VaultPureWhite,
-                                fontWeight = FontWeight.Bold
+                                color = CosmicTextPure,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                // Row 2: A S D F G H J K L (indented like standard QWERTY)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    row2.forEach { ch ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .duolingoCard(
+                                    backgroundColor = com.example.ui.theme.DuoPureWhite,
+                                    borderColor = com.example.ui.theme.DuoSwanBorder,
+                                    lipColor = com.example.ui.theme.DuoHareLip,
+                                    cornerRadius = 10.dp,
+                                    borderWidth = 2.dp,
+                                    lipHeight = 3.dp
+                                )
+                                .instantTouchPress { onCharClick(ch) }
+                                .padding(bottom = 3.dp)
+                                .testTag("pin_key_$ch"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = ch.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = CosmicTextPure,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                // Row 3: CLR + Z X C V B N M + Backspace
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1.35f)
+                            .height(48.dp)
+                            .duolingoButton(
+                                faceColor = com.example.ui.theme.DuoFoxOrange,
+                                lipColor = com.example.ui.theme.DuoFoxOrangeLip,
+                                cornerRadius = 10.dp,
+                                lipHeight = 3.dp
+                            )
+                            .instantTouchPress { onClearClick() }
+                            .padding(bottom = 3.dp)
+                            .testTag("pin_key_clear_alpha"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "CLR",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    row3.forEach { ch ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .duolingoCard(
+                                    backgroundColor = com.example.ui.theme.DuoPureWhite,
+                                    borderColor = com.example.ui.theme.DuoSwanBorder,
+                                    lipColor = com.example.ui.theme.DuoHareLip,
+                                    cornerRadius = 10.dp,
+                                    borderWidth = 2.dp,
+                                    lipHeight = 3.dp
+                                )
+                                .instantTouchPress { onCharClick(ch) }
+                                .padding(bottom = 3.dp)
+                                .testTag("pin_key_$ch"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = ch.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = CosmicTextPure,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
                             )
                         }
                     }
 
                     Box(
                         modifier = Modifier
-                            .weight(1.1f)
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(VaultCharcoal)
-                            .border(1.dp, VaultAmber.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                            .instantTouchPress { onClearClick() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "CLR",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = VaultAmber,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1.1f)
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(VaultCharcoal)
-                            .border(1.dp, VaultSlate.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
-                            .instantTouchPress { onBackspaceClick() },
+                            .weight(1.35f)
+                            .height(48.dp)
+                            .duolingoButton(
+                                faceColor = com.example.ui.theme.DuoCardinalRed,
+                                lipColor = com.example.ui.theme.DuoCardinalRedLip,
+                                cornerRadius = 10.dp,
+                                lipHeight = 3.dp
+                            )
+                            .instantTouchPress { onBackspaceClick() }
+                            .padding(bottom = 3.dp)
+                            .testTag("pin_key_backspace_alpha"),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Backspace,
                             contentDescription = "Backspace",
-                            tint = VaultPureWhite,
+                            tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -777,17 +1008,23 @@ private fun FastPinKeypadButton(
     Box(
         modifier = modifier
             .height(58.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0x331E293B))
-            .border(1.dp, Color(0x3338BDF8), RoundedCornerShape(18.dp))
-            .instantTouchPress(onPressInstant = onClick),
+            .duolingoCard(
+                backgroundColor = com.example.ui.theme.DuoPureWhite,
+                borderColor = com.example.ui.theme.DuoSwanBorder,
+                lipColor = com.example.ui.theme.DuoHareLip,
+                cornerRadius = 18.dp,
+                borderWidth = 2.dp,
+                lipHeight = 4.dp
+            )
+            .instantTouchPress(onPressInstant = onClick)
+            .padding(bottom = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.headlineMedium,
             color = CosmicTextPure,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -1625,7 +1862,7 @@ private fun RecoveryPinInputField(
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label) },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
         textStyle = TextStyle(
             fontFamily = JetBrainsMonoFontFamily,
             fontSize = 15.sp,

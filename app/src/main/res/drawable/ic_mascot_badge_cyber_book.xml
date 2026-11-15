@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- Book Cover -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M8,16 L30,20 L30,52 L8,48 Z"
+        android:strokeWidth="2"
+        android:strokeColor="#B45309" />
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M56,16 L34,20 L34,52 L56,48 Z"
+        android:strokeWidth="2"
+        android:strokeColor="#B45309" />
+    <!-- Glowing Pages -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,14 L31,18 L31,48 L12,44 Z" />
+    <path
+        android:fillColor="#F0F9FF"
+        android:pathData="M52,14 L33,18 L33,48 L52,44 Z" />
+    <!-- Floating Rune Sparkle -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M32,4 L34,10 L40,12 L34,14 L32,20 L30,14 L24,12 L30,10 Z" />
+</vector>

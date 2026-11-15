@@ -13,7 +13,7 @@ android {
   compileSdk = 36
 
   defaultConfig {
-    applicationId = "com.aistudio.applet.fzwndo"
+    applicationId = "com.aistudio.applet.cjexgt"
     minSdk = 24
     targetSdk = 36
     versionCode = 1

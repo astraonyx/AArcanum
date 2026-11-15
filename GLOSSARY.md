@@ -95,3 +95,11 @@ _Avoid_: fixed menu-only speed toggles.
 **Apple Minimalist Glassmorphism**:
 The elevated aesthetic featuring 24dp-28dp squircle cards, floating frosted pill docks, soft pastel badges, and restraint typography inspired by Apple HIG and clean pastel fintech decks.
 _Avoid_: harsh borders, cluttered multi-colored boxes.
+
+**Auralys Music Chamber**:
+The full-screen stealth music player persona embedded natively inside Arcanum, providing hybrid playback across local encrypted vault audio and online music streaming.
+_Avoid_: external music app, separate APK player, Auralys clone.
+
+**Skip-Setup Default Credentials**:
+The zeroed initial authentication state (`000000-000000-000000`) assigned when onboarding setup is skipped, allowing entry to Auralys Music Chamber before custom credentials are configured in Isolated Vault Settings.
+_Avoid_: hardcoded backdoor, permanent weak PIN, bypass key.

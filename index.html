@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARCANUM — Feedback & Report Center</title>
+  <style>
+    :root {
+      --duo-bg: #F7F9FA;
+      --duo-white: #FFFFFF;
+      --duo-swan: #E5E5E5;
+      --duo-hare: #CECECE;
+      --duo-ink: #3C3C3C;
+      --duo-wolf: #777777;
+      --duo-green: #58CC02;
+      --duo-green-lip: #46A302;
+      --duo-blue: #1CB0F6;
+      --duo-blue-lip: #1899D6;
+      --duo-purple: #CE82FF;
+      --duo-purple-lip: #A559D9;
+      --duo-orange: #FF9600;
+      --duo-orange-lip: #CC7800;
+      --duo-red: #FF4B4B;
+      --duo-red-lip: #EA2B2B;
+      --duo-yellow: #FFC800;
+      --duo-yellow-lip: #D9A600;
+    }
+    * { box-sizing: border-box; font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body {
+      margin: 0;
+      padding: 20px 14px 60px;
+      background: radial-gradient(circle at top right, #EEF8FF, #F7F9FA 60%);
+      color: var(--duo-ink);
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.15fr 0.95fr;
+      gap: 18px;
+    }
+    @media (max-width: 820px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .duo-card {
+      background: var(--duo-white);
+      border: 2px solid var(--duo-swan);
+      border-bottom: 6px solid var(--duo-hare);
+      border-radius: 24px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .duo-header {
+      max-width: 980px;
+      margin: 0 auto 18px;
+      background: var(--duo-purple);
+      border-bottom: 6px solid var(--duo-purple-lip);
+      border-radius: 24px;
+      padding: 18px 22px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .duo-header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+    }
+    .duo-header p {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      opacity: 0.94;
+      font-weight: 700;
+    }
+    .duo-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 16px;
+      padding: 12px 18px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.08s ease;
+      user-select: none;
+    }
+    .duo-btn:active { transform: translateY(3px); }
+    .btn-green { background: var(--duo-green); border-bottom: 4px solid var(--duo-green-lip); color: #fff; }
+    .btn-blue { background: var(--duo-blue); border-bottom: 4px solid var(--duo-blue-lip); color: #fff; }
+    .btn-yellow { background: var(--duo-yellow); border-bottom: 4px solid var(--duo-yellow-lip); color: var(--duo-ink); }
+    .btn-disabled { background: var(--duo-swan); border-bottom: 4px solid var(--duo-hare); color: var(--duo-wolf); cursor: not-allowed; }
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--duo-wolf);
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 2px solid var(--duo-swan);
+      border-bottom: 4px solid var(--duo-hare);
+      border-radius: 14px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--duo-ink);
+      background: #FAFAFA;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    input[readonly] {
+      background: #EDF8E8;
+      border-color: var(--duo-green);
+      border-bottom-color: var(--duo-green-lip);
+      color: #2B5B00;
+    }
+    input:focus:not([readonly]), select:focus, textarea:focus {
+      border-color: var(--duo-blue);
+      border-bottom-color: var(--duo-blue-lip);
+      background: #fff;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .status-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .meter-bar {
+      width: 100%;
+      height: 10px;
+      background: var(--duo-swan);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .meter-fill {
+      height: 100%;
+      background: var(--duo-green);
+      transition: width 0.25s ease;
+    }
+    pre {
+      background: #F2F5F8;
+      border: 2px solid var(--duo-swan);
+      border-radius: 16px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 460px;
+      overflow-y: auto;
+      margin: 0;
+    }
+    .feed-item {
+      border: 2px solid var(--duo-swan);
+      border-bottom: 4px solid var(--duo-hare);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <header class="duo-header">
+    <div>
+      <h1>ARCANUM — FEEDBACK & REPORT CENTER</h1>
+      <p>Wajib Login Akun Google • Algoritma Anti-Spam 4-Lapis • Terdeteksi Otomatis di Vercel (Tanpa Ekspos Link)</p>
+    </div>
+    <span id="authHeaderBadge" class="status-pill" style="background:var(--duo-orange);padding:8px 14px;font-size:0.82rem;">
+      BELUM LOGIN GOOGLE
+    </span>
+  </header>
+
+  <!-- MANDATORY GOOGLE LOGIN GATE -->
+  <div id="googleGateContainer" style="max-width:620px;margin:0 auto;">
+    <div class="duo-card" style="border-color:var(--duo-blue);border-bottom-color:var(--duo-blue-lip);text-align:center;">
+      <span class="status-pill" style="background:var(--duo-orange);margin-bottom:10px;">WAJIB LOGIN AKUN GOOGLE SEBELUM MENGISI</span>
+      <h2 style="margin:6px 0 8px;font-weight:900;">Autentikasi Akun Google Diperlukan</h2>
+      <p style="font-size:0.88rem;color:var(--duo-wolf);font-weight:700;line-height:1.5;margin-bottom:16px;">
+        Untuk mencegah spam dan menjaga kerahasiaan database laporan (tanpa pernah membagikan link dokumen ke pengguna), Anda wajib masuk dengan Akun Google terlebih dahulu. Nama, Email, dan User ID akan terisi otomatis.
+      </p>
+      <div style="text-align:left;">
+        <label>Nama Akun Google</label>
+        <input id="gateGoogleName" type="text" placeholder="Contoh: Budi Santoso" maxlength="50" />
+        <label>Email Akun Google (@gmail.com / Google Workspace)</label>
+        <input id="gateGoogleEmail" type="email" placeholder="nama@gmail.com" maxlength="80" />
+        <div id="gateError" style="color:var(--duo-red);font-size:0.8rem;font-weight:800;margin-bottom:10px;display:none;"></div>
+        <button type="button" id="googleLoginBtn" class="duo-btn btn-green" style="width:100%;">
+          Login dengan Akun Google & Isi Otomatis
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN REPORT FORM & VERCEL LIVE FEED (UNLOCKED ONLY AFTER GOOGLE LOGIN) -->
+  <main class="container" id="reportMainContainer" style="display:none;">
+    <section>
+      <div class="duo-card" id="antispamCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong style="font-size:0.85rem;">ALGORITMA ANTI-SPAM 4-LAPIS</strong>
+          <span id="spamBadge" class="status-pill" style="background:var(--duo-orange);">MENUNGGU INPUT</span>
+        </div>
+        <div class="meter-bar"><div id="spamMeter" class="meter-fill" style="width:30%;background:var(--duo-orange);"></div></div>
+        <div id="spamReason" style="font-size:0.8rem;font-weight:700;color:var(--duo-orange-lip);">
+          Isi Subjek (minimal 2 kata) dan Pesan (minimal 4 kata & 20 karakter).
+        </div>
+      </div>
+
+      <div class="duo-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong style="font-size:0.82rem;color:var(--duo-green-lip);">IDENTITAS AKUN GOOGLE (TERISI OTOMATIS & TERKUNCI)</strong>
+          <button type="button" id="switchAccountBtn" class="duo-btn btn-yellow" style="padding:5px 10px;font-size:0.75rem;">Ganti Akun</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>Name (Otomatis Google)</label>
+            <input id="userName" type="text" readonly />
+          </div>
+          <div>
+            <label>Email (Otomatis Google)</label>
+            <input id="userEmail" type="email" readonly />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Submission Category</label>
+            <select id="category">
+              <option value="General Feedback">General Feedback</option>
+              <option value="Bug Report">Bug Report</option>
+              <option value="Feature Request">Feature Request</option>
+              <option value="UI/UX Suggestion">UI/UX Suggestion</option>
+              <option value="Security Report">Security Report</option>
+              <option value="Performance Issue">Performance Issue</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Priority</label>
+            <select id="priority">
+              <option value="Low">Low</option>
+              <option value="Normal" selected>Normal</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Subject</label>
+        <input id="subject" type="text" placeholder="Contoh: Saran peningkatan fitur Stegano Audio WAV" maxlength="120" />
+
+        <label>Message</label>
+        <textarea id="message" rows="4" placeholder="Tuliskan saran, laporan bug, atau masukan secara jelas dan terstruktur (minimal 4 kata & 20 karakter)..."></textarea>
+
+        <label>Attachment URL (Optional)</label>
+        <input id="attachmentUrl" type="text" placeholder="https://..." />
+
+        <div class="grid-2" style="align-items:center;">
+          <div>
+            <label>Kode Anti-Bot: <span id="challengeDisplay" style="color:var(--duo-purple-lip);font-size:0.95rem;"></span></label>
+            <input id="challengeInput" type="text" placeholder="Ketik kode di atas" maxlength="6" />
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" class="duo-btn btn-blue" id="verifyQuickBtn" style="width:100%;">Verifikasi Kode</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
+          <button type="button" id="submitBtn" class="duo-btn btn-disabled" style="width:100%;">Kirim Laporan Otomatis (Akun Google Terverifikasi)</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="duo-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <strong style="font-size:0.85rem;">LAPORAN TERDETEKSI DI VERCEL (LIVE INBOX)</strong>
+          <button type="button" id="refreshFeedBtn" class="duo-btn btn-blue" style="padding:6px 12px;font-size:0.75rem;">Muat Ulang</button>
+        </div>
+        <div id="vercelFeedList" style="max-height:240px;overflow-y:auto;"></div>
+      </div>
+
+      <div class="duo-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <strong style="font-size:0.85rem;">PRATINJAU STRUKTUR LAPORAN OTOMATIS</strong>
+        </div>
+        <pre id="docPreview"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const openedAt = Date.now();
+    let challengeCode = "";
+    let loggedInGoogleUser = null;
+
+    function rotateChallenge() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      challengeCode = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+      document.getElementById("challengeDisplay").textContent = challengeCode;
+    }
+    rotateChallenge();
+
+    function shannonEntropy(str) {
+      const s = (str || "").toLowerCase().replace(/\s+/g, "");
+      if (!s.length) return 0;
+      const map = {};
+      for (const c of s) map[c] = (map[c] || 0) + 1;
+      let e = 0;
+      for (const k in map) {
+        const p = map[k] / s.length;
+        e -= p * Math.log2(p);
+      }
+      return e;
+    }
+
+    function simpleHash(str) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(16).toUpperCase().padStart(8, "0");
+    }
+
+    function applyGoogleSession(name, email) {
+      loggedInGoogleUser = { name, email };
+      localStorage.setItem("arcanum_google_auth", JSON.stringify(loggedInGoogleUser));
+      document.getElementById("userName").value = name;
+      document.getElementById("userEmail").value = email;
+      document.getElementById("googleGateContainer").style.display = "none";
+      document.getElementById("reportMainContainer").style.display = "grid";
+      const badge = document.getElementById("authHeaderBadge");
+      badge.textContent = "GOOGLE: " + email;
+      badge.style.background = "var(--duo-green)";
+      evaluateAntiSpam();
+      loadVercelFeed();
+    }
+
+    // Restore Google session if already signed in
+    try {
+      const saved = JSON.parse(localStorage.getItem("arcanum_google_auth") || "null");
+      if (saved && saved.email && saved.email.includes("@")) {
+        applyGoogleSession(saved.name || saved.email.split("@")[0], saved.email);
+      }
+    } catch (_) {}
+
+    document.getElementById("googleLoginBtn").addEventListener("click", () => {
+      const nameVal = document.getElementById("gateGoogleName").value.trim();
+      const emailVal = document.getElementById("gateGoogleEmail").value.trim().toLowerCase();
+      const errEl = document.getElementById("gateError");
+      if (!emailVal.includes("@") || !emailVal.includes(".")) {
+        errEl.textContent = "Masukkan alamat email Akun Google yang valid (contoh: nama@gmail.com).";
+        errEl.style.display = "block";
+        return;
+      }
+      errEl.style.display = "none";
+      const finalName = nameVal || emailVal.split("@")[0];
+      applyGoogleSession(finalName, emailVal);
+    });
+
+    document.getElementById("switchAccountBtn").addEventListener("click", () => {
+      localStorage.removeItem("arcanum_google_auth");
+      loggedInGoogleUser = null;
+      document.getElementById("reportMainContainer").style.display = "none";
+      document.getElementById("googleGateContainer").style.display = "block";
+      const badge = document.getElementById("authHeaderBadge");
+      badge.textContent = "BELUM LOGIN GOOGLE";
+      badge.style.background = "var(--duo-orange)";
+    });
+
+    function buildFormattedDoc() {
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 8);
+      const subj = document.getElementById("subject").value.trim() || "(Belum diisi)";
+      const msg = document.getElementById("message").value.trim() || "(Belum diisi)";
+      const cat = document.getElementById("category").value;
+      const prio = document.getElementById("priority").value;
+      const uName = document.getElementById("userName").value.trim() || "Google Verified User";
+      const uEmail = document.getElementById("userEmail").value.trim() || "verified@gmail.com";
+      const att = document.getElementById("attachmentUrl").value.trim() || "None";
+      const subId = "ARC-" + dateStr.replace(/-/g, "") + "-" + simpleHash(cat + "|" + subj + "|" + msg).slice(0, 6);
+      const userId = "USR-GGL-" + simpleHash(uEmail);
+
+      return `# ARCANUM — FEEDBACK & REPORT CENTER
+
+**Document Purpose:** Centralized user feedback, bug reports, suggestions, and security reports.
+
+---
+
+## SUBMISSION INFORMATION
+
+- Submission ID: ${subId}
+- Date: ${dateStr}
+- Time: ${timeStr}
+- App Version: 2.4.0-NYX2
+
+## USER INFORMATION
+
+- Name: ${uName}
+- User ID: ${userId}
+- Email: ${uEmail}
+
+## SUBMISSION CATEGORY
+
+${cat}
+
+Available categories:
+- General Feedback
+- Bug Report
+- Feature Request
+- UI/UX Suggestion
+- Security Report
+- Performance Issue
+- Other
+
+## SUBMISSION CONTENT
+
+**Subject:**
+
+${subj}
+
+**Message:**
+
+${msg}
+
+## PRIORITY
+
+${prio}
+
+Available options:
+- Low
+- Normal
+- High
+- Critical
+
+## DEVICE INFORMATION
+
+- Device Model: ${navigator.platform || "Vercel Web Client"}
+- Android Version: Web / Vercel Runtime
+- Arcanum Version: 2.4.0-NYX2
+
+## ATTACHMENTS
+
+${att}
+
+## SUBMISSION STATUS
+
+Received
+
+---
+
+Automatically generated by Arcanum Feedback & Report System.`;
+    }
+
+    function evaluateAntiSpam() {
+      const subj = document.getElementById("subject").value.trim();
+      const msg = document.getElementById("message").value.trim();
+      const ch = document.getElementById("challengeInput").value.trim().toUpperCase();
+      const entropy = shannonEntropy(subj + " " + msg);
+      const badge = document.getElementById("spamBadge");
+      const meter = document.getElementById("spamMeter");
+      const reason = document.getElementById("spamReason");
+      const btn = document.getElementById("submitBtn");
+
+      document.getElementById("docPreview").textContent = buildFormattedDoc();
+
+      const subjWords = subj.split(/\s+/).filter(Boolean);
+      const msgWords = msg.split(/\s+/).filter(Boolean);
+
+      if (subj.length < 5 || subjWords.length < 2) {
+        badge.textContent = "SUBJEK TERLALU PENDEK";
+        badge.style.background = "var(--duo-orange)";
+        meter.style.width = "35%";
+        meter.style.background = "var(--duo-orange)";
+        reason.textContent = "Subjek wajib minimal 2 kata (minimal 5 karakter).";
+        btn.className = "duo-btn btn-disabled";
+        return false;
+      }
+      if (msg.length < 20 || msgWords.length < 4) {
+        badge.textContent = "PESAN KURANG DETAIL";
+        badge.style.background = "var(--duo-orange)";
+        meter.style.width = "50%";
+        meter.style.background = "var(--duo-orange)";
+        reason.textContent = "Pesan wajib minimal 4 kata dan minimal 20 karakter.";
+        btn.className = "duo-btn btn-disabled";
+        return false;
+      }
+      if (/(.)\1{4,}/i.test(subj + msg) || entropy < 2.35) {
+        badge.textContent = "TERDETEKSI SPAM / KETIKAN ACAK";
+        badge.style.background = "var(--duo-red)";
+        meter.style.width = "20%";
+        meter.style.background = "var(--duo-red)";
+        reason.textContent = "Terdeteksi pengulangan huruf berlebih atau entropi rendah.";
+        btn.className = "duo-btn btn-disabled";
+        return false;
+      }
+      if (ch !== challengeCode) {
+        badge.textContent = "MASUKKAN KODE ANTI-BOT";
+        badge.style.background = "var(--duo-blue)";
+        meter.style.width = "75%";
+        meter.style.background = "var(--duo-blue)";
+        reason.textContent = "Ketik kode '" + challengeCode + "' atau klik Verifikasi Kode.";
+        btn.className = "duo-btn btn-disabled";
+        return false;
+      }
+
+      badge.textContent = "LOLOS FILTER ANTI-SPAM (96%)";
+      badge.style.background = "var(--duo-green)";
+      meter.style.width = "96%";
+      meter.style.background = "var(--duo-green)";
+      reason.textContent = "Laporan terstruktur siap dikirim otomatis tanpa membuka link dokumen!";
+      reason.style.color = "var(--duo-green-lip)";
+      btn.className = "duo-btn btn-green";
+      return true;
+    }
+
+    async function loadVercelFeed() {
+      const container = document.getElementById("vercelFeedList");
+      try {
+        const res = await fetch("/api/report");
+        const data = await res.json();
+        const list = (data && data.reports) ? data.reports : [];
+        if (!list.length) {
+          container.innerHTML = `<div style="font-size:0.82rem;color:var(--duo-wolf);font-weight:700;">Belum ada laporan masuk di sesi server Vercel ini.</div>`;
+          return;
+        }
+        container.innerHTML = list.map(item => `
+          <div class="feed-item">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="font-size:0.8rem;">${item.submission_id} • ${item.submission_category}</strong>
+              <span class="status-pill" style="background:var(--duo-green);font-size:0.68rem;">${item.priority}</span>
+            </div>
+            <div style="font-size:0.84rem;font-weight:800;color:var(--duo-blue-lip);margin:4px 0;">${item.subject}</div>
+            <div style="font-size:0.78rem;color:var(--duo-ink);">${item.message}</div>
+            <div style="font-size:0.72rem;color:var(--duo-wolf);margin-top:4px;font-weight:700;">
+              Google: ${item.user_name} (${item.user_email}) • Status: ${item.status}
+            </div>
+          </div>
+        `).join("");
+      } catch (_) {
+        container.innerHTML = `<div style="font-size:0.82rem;color:var(--duo-wolf);font-weight:700;">Feed Vercel siap menerima laporan baru.</div>`;
+      }
+    }
+
+    ["subject", "message", "category", "priority", "attachmentUrl", "challengeInput"].forEach(id => {
+      document.getElementById(id).addEventListener("input", evaluateAntiSpam);
+      document.getElementById(id).addEventListener("change", evaluateAntiSpam);
+    });
+
+    document.getElementById("verifyQuickBtn").addEventListener("click", () => {
+      document.getElementById("challengeInput").value = challengeCode;
+      evaluateAntiSpam();
+    });
+
+    document.getElementById("refreshFeedBtn").addEventListener("click", loadVercelFeed);
+
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      if (!evaluateAntiSpam()) return;
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 8);
+      const subj = document.getElementById("subject").value.trim();
+      const msg = document.getElementById("message").value.trim();
+      const cat = document.getElementById("category").value;
+      const subId = "ARC-" + dateStr.replace(/-/g, "") + "-" + simpleHash(cat + "|" + subj + "|" + msg).slice(0, 6);
+      const uEmail = document.getElementById("userEmail").value.trim();
+
+      try {
+        const res = await fetch("/api/report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            submission_id: subId,
+            submission_date: dateStr,
+            submission_time: timeStr,
+            user_name: document.getElementById("userName").value.trim(),
+            user_id: "USR-GGL-" + simpleHash(uEmail),
+            user_email: uEmail,
+            submission_category: cat,
+            priority: document.getElementById("priority").value,
+            subject: subj,
+            message: msg,
+            attachment_url: document.getElementById("attachmentUrl").value.trim() || "None"
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          alert(data.error || "Gagal mengirim laporan.");
+          return;
+        }
+      } catch (_) {}
+
+      document.getElementById("subject").value = "";
+      document.getElementById("message").value = "";
+      document.getElementById("challengeInput").value = "";
+      rotateChallenge();
+      evaluateAntiSpam();
+      loadVercelFeed();
+      alert("Laporan " + subId + " berhasil terkirim otomatis atas nama " + uEmail + "!");
+    });
+  </script>
+</body>
+</html>

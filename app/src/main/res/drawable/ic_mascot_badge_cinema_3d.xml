@@ -1,0 +1,20 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <!-- 3D Glasses Frame -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6,22 L58,22 L58,42 L36,42 L32,36 L28,42 L6,42 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#0F172A" />
+    <!-- Red Lens -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M10,26 L28,26 L28,38 L10,38 Z" />
+    <!-- Cyan Lens -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M36,26 L54,26 L54,38 L36,38 Z" />
+</vector>

@@ -1,0 +1,3 @@
+# Native Auralys Music Chamber with Skip-Setup Default Credentials
+
+To provide plausible deniability and a first-class music experience, Auralys (Metrolist/Media3 Compose architecture) is embedded natively into Arcanum as a stealth isolated chamber triggered by the 3-layer default PIN `000000-000000-000000` via Skip Setup or custom credentials via Onboarding Setup and Isolated Vault Settings. The suite preserves Auralys's 100% original 4-tab interface (Home, Explore, Library, Search) and expanding now-playing player sheet with synchronized lyrics and visualizer, enforcing folder-scoped queue isolation for local encrypted vault audio while maintaining dynamic queues for online streaming.

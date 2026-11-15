@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Trantor Vault"
+rootProject.name = "Arcanum"
 
 include(":app")
