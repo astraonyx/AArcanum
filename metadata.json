@@ -1,6 +1,6 @@
 {
-  "name": "Arcanum",
-  "description": "Brankas keamanan 3-lapis, manajemen file terenkripsi, steganografi, dan media player.",
+  "name": "AArcanum",
+  "description": "Brankas keamanan 3-lapis, manajemen file terenkripsi, steganografi, media player, dan Auralys 4.3.5 Music Chamber.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
