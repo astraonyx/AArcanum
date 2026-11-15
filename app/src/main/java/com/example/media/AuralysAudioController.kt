@@ -6,6 +6,8 @@ import android.media.AudioTrack
 import android.media.MediaPlayer
 import android.net.Uri
 import com.example.data.VaultItemEntity
+import com.example.media.innertube.InnerTubeClient
+import com.example.media.lyrics.LrcLibClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.sin
 
@@ -281,35 +284,113 @@ class AuralysAudioController(
         return folderTracks
     }
 
+    /**
+     * Mencari lagu dari YouTube Music InnerTube API secara asinkron.
+     */
+    fun searchOnlineTracks(query: String, onResult: (List<AuralysTrack>) -> Unit) {
+        scope.launch {
+            val results = InnerTubeClient.search(query)
+            val converted = results.map { item ->
+                AuralysTrack(
+                    id = item.id,
+                    title = item.title,
+                    artist = item.artist,
+                    album = item.album,
+                    durationSec = item.durationSec,
+                    sourceMode = QueueSourceMode.ONLINE_STREAMING,
+                    artworkUri = item.thumbnailUrl,
+                    streamUri = item.streamUrl,
+                    genre = "YouTube Music Online"
+                )
+            }
+            withContext(Dispatchers.Main) {
+                onResult(converted)
+            }
+        }
+    }
+
+    /**
+     * Mengambil lagu trending dari YouTube Music InnerTube API.
+     */
+    fun fetchTrendingOnlineTracks(onResult: (List<AuralysTrack>) -> Unit) {
+        scope.launch {
+            val trending = InnerTubeClient.fetchTrending()
+            val converted = trending.map { item ->
+                AuralysTrack(
+                    id = item.id,
+                    title = item.title,
+                    artist = item.artist,
+                    album = item.album,
+                    durationSec = item.durationSec,
+                    sourceMode = QueueSourceMode.ONLINE_STREAMING,
+                    artworkUri = item.thumbnailUrl,
+                    streamUri = item.streamUrl,
+                    genre = "Trending Chart"
+                )
+            }
+            withContext(Dispatchers.Main) {
+                onResult(converted)
+            }
+        }
+    }
+
     private fun startInternalPlayback(track: AuralysTrack, startFromSec: Int) {
         stopInternalPlayer()
         _isPlaying.value = true
 
-        val uriStr = track.streamUri
-        if (!uriStr.isNullOrBlank()) {
-            try {
-                val mp = MediaPlayer().apply {
-                    setDataSource(context, Uri.parse(uriStr))
-                    prepare()
-                    val realSec = (duration / 1000).coerceAtLeast(1)
-                    _totalDurationSec.value = realSec
-                    seekTo(startFromSec * 1000)
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                        playbackParams = playbackParams.setSpeed(_playbackSpeed.value)
-                    }
-                    start()
-                    setOnCompletionListener {
-                        onTrackFinished()
+        // Ambil lirik tersinkronisasi via LRCLIB jika belum ada
+        if (track.lyrics.isEmpty()) {
+            scope.launch {
+                val fetchedLyrics = LrcLibClient.getSyncedLyrics(track.title, track.artist, track.durationSec)
+                if (fetchedLyrics.isNotEmpty() && _currentTrack.value?.id == track.id) {
+                    _currentTrack.value = _currentTrack.value?.copy(lyrics = fetchedLyrics)
+                }
+            }
+        }
+
+        // Jika lagu online dan belum ada streamUri langsung, selesaikan via InnerTube stream resolver
+        if (track.sourceMode == QueueSourceMode.ONLINE_STREAMING && (track.streamUri == null || !track.streamUri.contains("googlevideo.com"))) {
+            scope.launch {
+                val streamUrl = InnerTubeClient.resolveAudioStreamUrl(track.id)
+                if (streamUrl.isNotBlank() && _currentTrack.value?.id == track.id) {
+                    withContext(Dispatchers.Main) {
+                        tryPlayStream(streamUrl, startFromSec, track)
                     }
                 }
-                mediaPlayer = mp
-                startTickerLoop()
-                return
-            } catch (_: Exception) {}
+            }
+        }
+
+        val uriStr = track.streamUri
+        if (!uriStr.isNullOrBlank()) {
+            tryPlayStream(uriStr, startFromSec, track)
+            return
         }
 
         // Mode Sintesis Audio Harmonik Harmonized PCM (untuk preview dan trek offline)
         startHarmonicSynthTicker(track)
+    }
+
+    private fun tryPlayStream(uriStr: String, startFromSec: Int, track: AuralysTrack) {
+        try {
+            val mp = MediaPlayer().apply {
+                setDataSource(context, Uri.parse(uriStr))
+                prepare()
+                val realSec = (duration / 1000).coerceAtLeast(1)
+                _totalDurationSec.value = realSec
+                seekTo(startFromSec * 1000)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    playbackParams = playbackParams.setSpeed(_playbackSpeed.value)
+                }
+                start()
+                setOnCompletionListener {
+                    onTrackFinished()
+                }
+            }
+            mediaPlayer = mp
+            startTickerLoop()
+        } catch (_: Exception) {
+            startHarmonicSynthTicker(track)
+        }
     }
 
     private fun startTickerLoop() {
